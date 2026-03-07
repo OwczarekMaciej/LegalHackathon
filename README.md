@@ -9,13 +9,25 @@ Projekt rozwiązuje problem niezrozumiałych umów i pism procesowych. System an
 
 ## 🛠 Instalacja i Uruchomienie
 
-1. Utwórz plik `.env` w głównym katalogu projektu:
+1. Utwórz i aktywuj wirtualne środowisko (venv):
+```bash
+python3 -m venv venv
+source venv/bin/activate  # (Maci/Linux)
+# lub: .\venv\Scripts\activate  # (Windows)
+```
+
+2. Zainstaluj wymagane pakiety:
+```bash
+pip install -r requirements.txt
+```
+
+3. Utwórz plik `.env` w głównym katalogu projektu:
 ```env
 OPENAI_API_KEY=sk-...
 OPENAI_MODEL=gpt-5.4
 ```
 
-2. Uruchom serwer developerski FastAPI:
+4. Uruchom serwer developerski FastAPI:
 ```bash
 uvicorn app.main:app --reload
 ```
