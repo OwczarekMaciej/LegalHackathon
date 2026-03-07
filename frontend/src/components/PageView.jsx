@@ -179,24 +179,25 @@ function ParagraphContent({ para, annotatedSegments, hoveredSuggIds, spanRefs, o
     if (!seg.suggestions.length) {
       nodes.push(<span key={`p-${clipStart}`}>{segText}</span>);
     } else {
-      const top       = topSeverity(seg.suggestions);
-      const style     = SEVERITY_STYLES[top.severity];
-      const isHovered = seg.suggestions.some((s) => hoveredSuggIds.includes(s.id));
-      const isEdited  = seg.suggestions.some((s) => s.status === "edited");
+      const top        = topSeverity(seg.suggestions);
+      const isResolved = seg.suggestions.every((s) => s.status === "resolved");
+      const style      = SEVERITY_STYLES[isResolved ? "resolved" : top.severity];
+      const isHovered  = !isResolved && seg.suggestions.some((s) => hoveredSuggIds.includes(s.id));
+      const isEdited   = seg.suggestions.some((s) => s.status === "edited");
 
       nodes.push(
         <span
           key={`h-${clipStart}`}
           ref={(el) => { if (el) spanRefs.current[top.id] = el; }}
-          contentEditable suppressContentEditableWarning tabIndex={0}
-          onKeyDown={(e) => onKeyDown(e, top)}
-          onMouseEnter={(e) => onMouseEnter(e, seg.suggestions)}
+          contentEditable={!isResolved} suppressContentEditableWarning tabIndex={isResolved ? -1 : 0}
+          onKeyDown={(e) => !isResolved && onKeyDown(e, top)}
+          onMouseEnter={(e) => !isResolved && onMouseEnter(e, seg.suggestions)}
           onMouseLeave={onMouseLeave}
           style={{
             background:    isHovered ? style.bgHover : style.bg,
             borderBottom:  `2px ${isEdited ? "dashed" : "solid"} ${style.border}`,
             borderRadius:  "2px 2px 0 0",
-            cursor:        "text",
+            cursor:        isResolved ? "default" : "text",
             outline:       "none",
             caretColor:    style.dot,
             transition:    "background 0.15s",

@@ -2,14 +2,10 @@ import { useState, useCallback } from "react";
 import { SAMPLE_PAGES, MOCK_SUGGESTIONS } from "./data/mockData";
 import { DARK_THEME, LIGHT_THEME, SEVERITY_STYLES } from "./data/theme";
 import { useDocumentStore } from "./hooks/useDocumentStore";
-import { Topbar }        from "./components/Topbar";
-import { DocumentView }  from "./components/DocumentView";
-import { Sidebar }       from "./components/Sidebar";
-
-async function fetchSuggestionsFromBackend(pages) {
-  await new Promise((r) => setTimeout(r, 1200));
-  return MOCK_SUGGESTIONS.filter((s) => s.end <= (pages[s.page]?.length ?? 0));
-}
+import { analyseDocument }  from "./api/analyse";
+import { Topbar }           from "./components/Topbar";
+import { DocumentView }     from "./components/DocumentView";
+import { Sidebar }          from "./components/Sidebar";
 
 export default function App() {
   const [activeSuggId,  setActive]      = useState(null);
@@ -17,8 +13,10 @@ export default function App() {
   const [documentKey,   setDocumentKey] = useState(0);
   const [initPages,     setInitPages]   = useState(SAMPLE_PAGES);
   const [filename,      setFilename]    = useState("service-agreement (sample)");
+  const [apiError,      setApiError]    = useState(null);
+  const [userPrompt,    setUserPrompt]  = useState("");
 
-  const { pages, suggestions, isAnalysing, applyEdit, dismissSuggestion, reanalyse }
+  const { pages, suggestions, isAnalysing, applyEdit, resolveSuggestion, dismissSuggestion, reanalyse }
     = useDocumentStore(initPages, MOCK_SUGGESTIONS, documentKey);
 
   const handleImport = useCallback(({ pages: importedPages, filename: name, pageCount }) => {
@@ -26,7 +24,18 @@ export default function App() {
     setFilename(`${name}  ·  ${pageCount}p`);
     setDocumentKey((k) => k + 1);
     setActive(null);
+    setApiError(null);
   }, []);
+
+  const handleReanalyse = useCallback(() => {
+    setApiError(null);
+    reanalyse(async (pages) => {
+      const results = await analyseDocument(pages, userPrompt);
+      return results;
+    }).catch((err) => {
+      setApiError(err.message ?? "Analysis failed.");
+    });
+  }, [reanalyse, userPrompt]);
 
   const theme = isDark ? DARK_THEME : LIGHT_THEME;
 
@@ -54,7 +63,7 @@ export default function App() {
       <div style={{ flex: 1, display: "flex", overflow: "hidden" }}>
         <div style={{ flex: 1, overflowY: "auto", background: isDark ? "#23272f" : "#e8e6e1", padding: "40px 32px" }}>
           {/* Legend */}
-          <div style={{ maxWidth: 760, margin: "0 auto 28px", display: "flex", gap: 16, padding: "9px 14px", background: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.06)", borderRadius: 7, flexWrap: "wrap", alignItems: "center" }}>
+          <div style={{ maxWidth: 794, margin: "0 auto 28px", display: "flex", gap: 16, padding: "9px 14px", background: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.06)", borderRadius: 7, flexWrap: "wrap", alignItems: "center" }}>
             <span style={{ fontSize: 11, color: isDark ? "rgba(255,255,255,0.35)" : "rgba(0,0,0,0.4)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.07em" }}>
               Underlined = editable · hover to inspect
             </span>
@@ -71,6 +80,7 @@ export default function App() {
             suggestions={suggestions}
             onApplyEdit={applyEdit}
             onDismiss={dismissSuggestion}
+          onResolve={resolveSuggestion}
           />
         </div>
 
@@ -79,8 +89,12 @@ export default function App() {
           activeId={activeSuggId}
           onHover={setActive}
           onDismiss={dismissSuggestion}
-          onReanalyse={() => reanalyse(fetchSuggestionsFromBackend)}
+          onResolve={resolveSuggestion}
+          onReanalyse={handleReanalyse}
           isAnalysing={isAnalysing}
+          apiError={apiError}
+          userPrompt={userPrompt}
+          onUserPromptChange={setUserPrompt}
         />
       </div>
     </div>
