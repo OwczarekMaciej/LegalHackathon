@@ -39,6 +39,14 @@ def generate_visualization(request: VisualizationRequest) -> VisualizationRespon
                 {"source": "1", "target": "2", "label": "Umowa najmu"}
             ]
         }
+    elif vis_type == "oś czasu":
+        mock_data = {
+            "events": [
+                {"date": "2023-01-01", "title": "Podpisanie umowy"},
+                {"date": "2023-06-15", "title": "Aneks nr 1"},
+                {"date": "2024-01-01", "title": "Zakończenie współpracy"}
+            ]
+        }
     else:
         mock_data = {"raw_content": request.context}
         
