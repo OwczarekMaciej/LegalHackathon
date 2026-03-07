@@ -26,25 +26,14 @@ class MiejsceOffset(BaseModel):
 
 
 class AnalizeRequest(BaseModel):
-    fragments: list[str] | None = Field(
-        None,
-        description="Kolejne fragmenty dokumentu (klient przysyła tekst już podzielony)",
-    )
-    text: str | None = Field(
-        None,
-        description="Pełny tekst jako jeden fragment (alternatywa do fragments)",
+    fragments: list[str] = Field(
+        ...,
+        description="Kolejne fragmenty dokumentu (klient przysyła tekst już podzielony). Jeden blok = jedna pozycja, np. [\"cały tekst\"].",
     )
     user_prompt: str | None = Field(
         None,
         description="Doprecyzowanie od użytkownika, co dokładnie analizować",
     )
-
-    def get_fragments(self) -> list[str]:
-        if self.fragments:
-            return self.fragments
-        if self.text is not None:
-            return [self.text]
-        return []
 
 
 # --- Response: JEZYK ---

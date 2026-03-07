@@ -81,9 +81,9 @@ async def analize(request: AnalizeRequest) -> AnalizeResponse:
     - Agent JEZYK: błędy języka, niejasności, żargon → treść_poprawki + miejsce (offset).
     - Agent GRAF: miejsca na wizualizacje (oś czasu, tabela, wykres kołowy/słupkowy) → typ + miejsce.
     """
-    fragments = request.get_fragments()
+    fragments = request.fragments
     if not fragments:
-        raise HTTPException(422, detail="Podaj 'fragments' lub 'text'.")
+        raise HTTPException(422, detail="Pole 'fragments' nie może być puste.")
 
     if not settings.openai_api_key:
         raise HTTPException(500, detail="Brak OPENAI_API_KEY w konfiguracji.")

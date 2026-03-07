@@ -45,6 +45,7 @@ Bardzo ważne zasady:
 - Jeśli kilka problemów dotyczy tego samego krótkiego fragmentu, połącz je w jedno znalezisko.
 - Nie duplikuj znalezisk.
 - Maksymalnie 5 znalezisk na fragment.
+- Nie zajmuj się wizualizacjami. Interesuję cię tylko i wyłącznie tekst.
 
 Dla każdego błędu:
 - podaj literalny cytat fragmentu z dokumentu jako "snippet"
