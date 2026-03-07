@@ -16,6 +16,7 @@ from app.services.memory import ContextMemory
 class RawWynikJezyk:
     tresc_poprawki: str
     snippet: str
+    propozycja_poprawki: str = ""  # proponowane poprawione zdanie/fragment
 
 
 @dataclass
@@ -58,8 +59,8 @@ Dla każdego błędu:
 - w "tresc_poprawki" opisz:
   1) co konkretnie utrudnia zrozumienie
   2) jak to poprawić prostszym, bardziej bezpośrednim i czytelniejszym językiem
+- w "propozycja_poprawki" podaj konkretne poprawione zdanie (lub fragment) – gotową wersję do wstawienia zamiast snippet
 - pisz konkretnie, bez ogólników typu "uprościć język"
-- nie przepisuj całego zdania, chyba że to konieczne; skup się na diagnozie i kierunku poprawy
 
 Dodatkowy kontekst z poprzednich fragmentów może zostać dostarczony osobno. Używaj go tylko do lepszego zrozumienia bieżącego fragmentu. Nie oceniaj fragmentów, których nie widzisz.
 
@@ -71,7 +72,7 @@ Zwróć także "context_summary":
 
 Odpowiadaj wyłącznie w formacie JSON, bez dodatkowego tekstu.
 Format odpowiedzi:
-{"findings": [{"tresc_poprawki": "opis problemu i propozycja poprawki", "snippet": "literalny cytat z dokumentu"}], "context_summary": "1-2 zdania podsumowania tego fragmentu dla kontekstu kolejnych"}
+{"findings": [{"tresc_poprawki": "opis problemu i kierunek poprawy", "snippet": "literalny cytat z dokumentu", "propozycja_poprawki": "gotowe poprawione zdanie do wstawienia"}], "context_summary": "1-2 zdania podsumowania tego fragmentu dla kontekstu kolejnych"}
 
 Jeśli nie ma istotnych problemów w tym fragmencie, zwróć:
 {"findings": [], "context_summary": "..."}
@@ -152,6 +153,7 @@ def _parse_jezyk_response(content: str) -> tuple[list[RawWynikJezyk], str]:
                     RawWynikJezyk(
                         tresc_poprawki=item.get("tresc_poprawki") or "",
                         snippet=item["snippet"].strip(),
+                        propozycja_poprawki=(item.get("propozycja_poprawki") or "").strip(),
                     )
                 )
         summary = (data.get("context_summary") or "").strip()

@@ -60,6 +60,7 @@ class WynikGraf(BaseModel):
 class WynikAnalizy(BaseModel):
     kategoria: Kategoria
     tresc_poprawki: str | None = None  # tylko JEZYK
+    propozycja_poprawki: str | None = None  # tylko JEZYK – proponowane poprawione zdanie
     typ: TypGraf | None = None  # tylko GRAF
     miejsce: MiejsceOffset
     chunk_index: int | None = None
