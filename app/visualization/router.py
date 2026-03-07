@@ -25,17 +25,22 @@ async def get_visualization_as_png(request: VisualizationRequest):
     vis_type = vis_response.visualization_type.lower()
     data = vis_response.data
     
-    if vis_type == "wykres":
+    if vis_type == "chart":
         img_bytes = generate_chart_png(data)
         return Response(content=img_bytes, media_type="image/png")
         
-    elif vis_type == "graf":
+    elif vis_type == "graph":
         img_bytes = generate_graph_png(data)
         return Response(content=img_bytes, media_type="image/png")
         
-    elif vis_type == "oś czasu":
+    elif vis_type == "timeline":
         img_bytes = generate_timeline_png(data)
         return Response(content=img_bytes, media_type="image/png")
+        
+    elif vis_type == "table":
+        # Tabela nie jest renderowana na backendzie do PNG.
+        # Zwracamy po prostu ustrukturyzowany JSON prosto z LLM do wykorzystania na froncie.
+        return JSONResponse(content=data)
         
     else:
         return JSONResponse(status_code=400, content={"error": f"Generowanie PNG dla typu '{vis_type}' nie jest wspierane."})

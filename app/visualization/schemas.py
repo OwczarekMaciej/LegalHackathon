@@ -3,7 +3,7 @@ from typing import Any, Dict, Optional
 
 class VisualizationRequest(BaseModel):
     context: str = Field(..., description="Tekst z dokumentu z danymi do analizy")
-    visualization_type: str = Field(..., description="Rodzaj wizualizacji: graf, wykres, tabela itp.")
+    visualization_type: str = Field(..., description="Rodzaj wizualizacji: graph, chart, table, timeline itp.")
 
 class VisualizationResponse(BaseModel):
     visualization_type: str

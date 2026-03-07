@@ -22,7 +22,7 @@ def _get_system_prompt_for_type(vis_type: str) -> str:
         "Wymagane jest zwrócenie TYLKO i WYŁĄCZNIE poprawnego, czystego pliku JSON, bez formatowania Markdown (bez ```json), bez wstępów ani komentarzy.\n\n"
     )
     
-    if vis_type == "wykres":
+    if vis_type == "chart":
         return base_instruction + (
             "Zwróck JSON w formacie:\n"
             "{\n"
@@ -36,7 +36,7 @@ def _get_system_prompt_for_type(vis_type: str) -> str:
             "}\n"
             "Odpowiedz TYLKO i WYŁĄCZNIE surowym plikiem JSON pasującym dokładnie do tego schematu."
         )
-    elif vis_type == "graf":
+    elif vis_type == "graph":
         return base_instruction + (
             "Zwróć JSON dla grafu w formacie:\n"
             "{\n"
@@ -50,7 +50,7 @@ def _get_system_prompt_for_type(vis_type: str) -> str:
             "}\n"
             "Odpowiedz TYLKO i WYŁĄCZNIE surowym plikiem JSON pasującym dokładnie do tego schematu."
         )
-    elif vis_type == "oś czasu":
+    elif vis_type == "timeline":
         return base_instruction + (
             "Zwróć JSON dla Osi Czasu (Harmonogramu) w formacie:\n"
             "{\n"
@@ -60,6 +60,19 @@ def _get_system_prompt_for_type(vis_type: str) -> str:
             "  ]\n"
             "}\n"
             "Upewnij się, że pole 'date' jest zawsze poprawnie sformatowane jako YYYY-MM-DD. "
+            "Odpowiedz TYLKO i WYŁĄCZNIE surowym plikiem JSON pasującym dokładnie do tego schematu."
+        )
+    elif vis_type == "table":
+        return base_instruction + (
+            "Zwróć JSON dla Tabeli analizując tekst, wyłapując poszczególne obiekty i cechy do ułożenia w siatce w formacie:\n"
+            "{\n"
+            '  "columns": ["Nazwa Kolumny 1", "Nazwa Kolumny 2"],\n'
+            '  "rows": [\n'
+            '    ["Wartość 1A", "Wartość 2A"],\n'
+            '    ["Wartość 1B", "Wartość 2B"]\n'
+            "  ]\n"
+            "}\n"
+            "Długość każdego z wierszy w 'rows' musi idealnie odpowiadać liczbie zdefiniowanych nagłówków w 'columns'. "
             "Odpowiedz TYLKO i WYŁĄCZNIE surowym plikiem JSON pasującym dokładnie do tego schematu."
         )
     else:
