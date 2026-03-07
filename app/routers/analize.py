@@ -53,6 +53,7 @@ def _resolve_jezyk_to_result(
     return WynikAnalizy(
         kategoria=Kategoria.JEZYK,
         tresc_poprawki=raw.tresc_poprawki,
+        propozycja_poprawki=raw.propozycja_poprawki or None,
         typ=None,
         miejsce=miejsce,
         chunk_index=chunk_index,
