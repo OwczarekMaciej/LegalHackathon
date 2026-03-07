@@ -25,7 +25,7 @@ def setup_modern_axes(ax):
     ax.tick_params(axis='y', colors=TEXT_COLOR, labelsize=12, length=0, pad=10)
 
 def generate_chart_png(data: dict) -> bytes:
-    """Generuje niesamowicie czysty i kolorowy PNG dla typu 'wykres'"""
+    """Generuje minimalistyczny, 'premium' PNG dla typu 'chart'"""
     labels = data.get("labels", [])
     if data.get("datasets"):
         values = data["datasets"][0].get("data", [])
@@ -34,12 +34,16 @@ def generate_chart_png(data: dict) -> bytes:
         values = []
         label_name = "Wartość"
 
-    fig, ax = plt.subplots(figsize=(9, 6), facecolor="white")
-    ax.set_facecolor("white")
+    # Nowoczesne, jasnoszary tło aplikacji (np. Tailwind Slate-50)
+    bg_color = "#F8FAFC"
+    fig, ax = plt.subplots(figsize=(10, 6.5), facecolor=bg_color)
+    ax.set_facecolor(bg_color)
     
-    setup_modern_axes(ax)
+    # Całkowite usunięcie ramek (spines) zokoła wykresu
+    for spine in ax.spines.values():
+        spine.set_visible(False)
 
-    # Kolorowa Paleta Legal Design (taka sama jak w osi czasu)
+    # Kolorowa Paleta Legal Design
     NODE_COLORS = [
         "#D94833", # Elegancka czerwień/cegła
         "#2B6CB0", # Klasyczny Niebieski
@@ -49,46 +53,66 @@ def generate_chart_png(data: dict) -> bytes:
         "#319795"  # Turkusowy
     ]
     
+    # Siatka (Grid) - tylko poziome linie, ledwie widoczne w tle
+    ax.yaxis.grid(True, linestyle='-', which='major', color='#E2E8F0', alpha=0.8, zorder=0)
+    ax.set_axisbelow(True) 
+    ax.get_yaxis().set_ticks([]) # Ukrycie brzydkich osi Y
+    
+    # Twarda "podłoga" (baza) na osi X dla słupków
+    ax.axhline(0, color="#CBD5E1", linewidth=1.5, zorder=2)
+
     # Dostosuj kolory słupków w zależności od ich ilości
     bar_colors = [NODE_COLORS[i % len(NODE_COLORS)] for i in range(len(labels))]
 
-    # Rysowanie słupków z piękną paletą
-    bars = ax.bar(labels, values, color=bar_colors, edgecolor="none", zorder=3, width=0.55)
+    # Zawijanie zbyt długich etykiet z osi X
+    import textwrap
+    wrapped_labels = [textwrap.fill(lbl, width=15) for lbl in labels]
 
-    # Etykiety nad słupkami (w pudełkach dla lepszej czytelności)
-    for bar, color in zip(bars, bar_colors):
+    # Klasyczne, profesjonalne słupki bez zaokrągleń
+    bars = ax.bar(wrapped_labels, values, color=bar_colors, edgecolor="none", zorder=3, width=0.6)
+
+    # Etykiety z liczbami nad słupkami
+    for bar in bars:
         h = bar.get_height()
+        formatted_val = f"{int(h):,}".replace(",", " ") if h == int(h) else str(h)
+        
         ax.text(
             bar.get_x() + bar.get_width() / 2., 
-            h + (max(values) * 0.05),
-            f'{h}',
+            h + (max(values) * 0.02),
+            formatted_val,
             ha='center', va='bottom',
-            fontsize=12, fontweight='bold', color=color,
-            bbox=dict(
-                boxstyle="round,pad=0.4",
-                facecolor="#F8FAFC",
-                edgecolor=color, # Ramka pod kolor słupka
-                linewidth=1.2,
-                alpha=0.9
-            )
+            fontsize=12, fontweight='bold', color="#334155", # Klasyczny ciemny szary dla czytelności
+            zorder=4
         )
 
-    # Tytuł wyrównany do lewej (styl raportowy)
+    # Ustawienie i modyfikacja wyglądu etykiet osi X
+    ax.tick_params(axis='x', colors="#475569", labelsize=11, length=0, pad=10)
+    
+    for label in ax.get_xticklabels():
+        label.set_fontweight('medium')
+
+    # Nowoczesny, czysty tytuł z lewej strony
+    wrapped_title = textwrap.fill(label_name.upper(), width=50)
+    
     ax.set_title(
-        label_name.upper(), 
+        wrapped_title, 
         fontsize=22, 
         fontweight="bold", 
-        color=PRIMARY_COLOR, 
+        color="#1E293B",
         loc="left", 
         pad=25
     )
     
-    # Skalujemy margines Y, by pudełka z wartościami nie wychodziły poza krawędź
-    ax.set_ylim(0, max(values) * 1.2 if values else 1)
+    # Skalujemy margines Y z buforem żeby liczby oddychały
+    if values:
+        ax.set_ylim(0, max(values) * 1.15)
+    else:
+        ax.set_ylim(0, 1)
 
-    plt.tight_layout(pad=3.0)
+    plt.tight_layout(pad=2.0)
     buf = io.BytesIO()
-    plt.savefig(buf, format='png', dpi=200, bbox_inches='tight')
+    # Zapis
+    plt.savefig(buf, format='png', dpi=200, bbox_inches='tight', facecolor=fig.get_facecolor())
     buf.seek(0)
     plt.close(fig)
     return buf.getvalue()
