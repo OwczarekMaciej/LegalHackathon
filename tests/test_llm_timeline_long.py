@@ -1,4 +1,5 @@
 import requests
+import os
 
 url = "http://127.0.0.1:8000/viz/generate-png"
 payload = {
@@ -10,8 +11,9 @@ print("Wysyłam zapytanie o Długą Oś Czasu (LLM) do", url, "...")
 response = requests.post(url, json=payload)
 
 if response.status_code == 200:
-    with open("test_ai_timeline_long.png", "wb") as f:
+    out_path = os.path.join(os.path.dirname(__file__), "test_ai_timeline_long.png")
+    with open(out_path, "wb") as f:
         f.write(response.content)
-    print("Sukces! Zapisano plik 'test_ai_timeline_long.png'.")
+    print(f"Sukces! Zapisano plik '{out_path}'.")
 else:
     print("Błąd:", response.status_code, response.text)

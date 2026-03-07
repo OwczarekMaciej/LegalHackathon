@@ -49,7 +49,7 @@ curl -X 'POST' \
   -d '{
   "visualization_type": "timeline",
   "context": "Firma powstała w 2020. W marcu 2021 dostaliśmy 1mln finansowania. We wrześniu 2021 zmieniliśmy zarząd. W maju 2022 weszliśmy do Niemiec. W sierpniu 2022 odeszło 3 dyrektorów. W styczniu 2023 był rebranding. W kwietniu 2023 odpaliliśmy nowy produkt. Pod koniec 2023 zamkneliśmy rundę B. Na początku 2024 podpisaliśmy 5 umów. A w połowie 2024 kupiliśmy mniejszą spółkę X. W sierpniu 2024 otworzyliśmy biuro w USA, we wrześniu zatrudniliśmy 200 osób."
-}' --output harmonogram.png
+}' --output tests/harmonogram.png
 ```
 
 ### 2. Generowanie Wykresu
@@ -64,7 +64,7 @@ curl -X 'POST' \
   -d '{
   "visualization_type": "chart",
   "context": "Z analizy umowy spółki XYZ i rocznego bilansu za 2025 rok wynika, że zyski wyniosły: w pierwszym kwartale 55 tysięcy, w drugim spadły do 12 tysięcy, w trzecim podskoczyły na 80 tysięcy, a w czwartym zamknęły się na 40 tysięcy."
-}' --output wykres.png
+}' --output tests/wykres.png
 ```
 
 ### 3. Ekstrakcja Danych do Tabeli (Zwraca JSON)
