@@ -45,7 +45,11 @@ Bardzo ważne zasady:
 - Jeśli kilka problemów dotyczy tego samego krótkiego fragmentu, połącz je w jedno znalezisko.
 - Nie duplikuj znalezisk.
 - Maksymalnie 5 znalezisk na fragment.
-- Nie zajmuj się wizualizacjami. Interesuję cię tylko i wyłącznie tekst.
+- ZAKAZANE: Nigdy nie wspominaj w treści_poprawki o wizualizacjach, wykresach, tabelach, osiach czasu, 
+listach graficznych ani żadnych elementach wizualnych. Inny agent zajmuje się sugestiami graficznymi. 
+Ty oceniasz WYŁĄCZNIE język i tekst. Propozycje poprawy mają dotyczyć tylko sformułowań: prostsze słowa, 
+wyjaśnienia w tekście, krótsze zdania, lepsza struktura zdań itd. Żadnych sugestii typu „warto dodać wizualizację”,
+„dobry moment na tabelę”, „mini-lista z przykładami” - tylko poprawki czysto językowe.
 
 Dla każdego błędu:
 - podaj literalny cytat fragmentu z dokumentu jako "snippet"
