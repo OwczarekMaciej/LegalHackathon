@@ -10,9 +10,17 @@ from app.schemas import (
     Kategoria,
     MiejsceOffset,
     TypGraf,
+    VerifyImprovementRequest,
+    VerifyImprovementResponse,
     WynikAnalizy,
 )
-from app.services.agents import RawWynikGraf, RawWynikJezyk, run_agent_graf, run_agent_jezyk
+from app.services.agents import (
+    RawWynikGraf,
+    RawWynikJezyk,
+    run_agent_graf,
+    run_agent_jezyk,
+    run_verify_improvement,
+)
 from app.services.memory import ContextMemory
 from app.services.offset import find_snippet_offset
 from app.settings import settings
@@ -113,3 +121,23 @@ async def analize(request: AnalizeRequest) -> AnalizeResponse:
                 all_results.append(r)
 
     return AnalizeResponse(results=all_results)
+
+
+@router.post("/verify-improvement", response_model=VerifyImprovementResponse)
+async def verify_improvement(request: VerifyImprovementRequest) -> VerifyImprovementResponse:
+    """
+    Weryfikacja poprawek użytkownika: przekazujesz oryginalny zły fragment, reasoning (czemu był źle)
+    oraz zaktualizowany tekst. LLM sprawdza, czy poprawki są wystarczające.
+    Zwraca all_good=true (wtedy issues=[]) albo all_good=false i listę pozostałych problemów.
+    """
+    if not settings.openai_api_key:
+        raise HTTPException(500, detail="Brak OPENAI_API_KEY w konfiguracji.")
+
+    client = AsyncOpenAI(api_key=settings.openai_api_key)
+    all_good, issues = await run_verify_improvement(
+        client,
+        bad_text=request.bad_text,
+        reasoning=request.reasoning,
+        updated_text=request.updated_text,
+    )
+    return VerifyImprovementResponse(all_good=all_good, issues=issues)

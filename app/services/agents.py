@@ -238,3 +238,76 @@ async def run_agent_graf(
     content = response.choices[0].message.content or ""
     findings, summary = _parse_graf_response(content)
     return findings, summary
+
+
+# --- Weryfikacja poprawek użytkownika ---
+
+SYSTEM_VERIFY = """Jesteś ekspertem Legal Design. Otrzymujesz:
+1) oryginalny fragment tekstu, który został oceniony jako problematyczny
+2) uzasadnienie, czemu był źle (reasoning)
+3) zaktualizowany tekst po poprawkach użytkownika
+
+Twoje zadanie: ocenić, czy poprawki użytkownika wystarczająco usuwają wskazane problemy.
+
+Odpowiadaj wyłącznie w formacie JSON, bez dodatkowego tekstu.
+
+Jeśli zaktualizowany tekst jest w porządku (problemy usunięte lub znacząco zredukowane):
+{"all_good": true, "issues": []}
+
+Jeśli nadal coś jest nie tak, wylistuj konkretne pozostałe problemy:
+{"all_good": false, "issues": ["opis problemu 1", "opis problemu 2"]}
+
+Bądź realistyczny: drobne różnice stylistyczne nie są problemem. Zwracaj tylko realne braki w zrozumiałości, jasności lub zgodności z tym, o co chodziło w reasoningu."""
+
+
+def _parse_verify_response(content: str) -> tuple[bool, list[str]]:
+    """Parsuje odpowiedź weryfikacji. Zwraca (all_good, issues)."""
+    content = content.strip()
+    json_match = re.search(r"\{[\s\S]*\}", content)
+    if not json_match:
+        return False, ["Nie udało się odczytać odpowiedzi modelu."]
+    try:
+        data = json.loads(json_match.group())
+        all_good = data.get("all_good", False)
+        issues = data.get("issues")
+        if not isinstance(issues, list):
+            issues = []
+        issues = [str(i).strip() for i in issues if i]
+        return all_good, issues
+    except (json.JSONDecodeError, TypeError):
+        return False, ["Nie udało się sparsować odpowiedzi."]
+
+
+async def run_verify_improvement(
+    client: AsyncOpenAI,
+    bad_text: str,
+    reasoning: str,
+    updated_text: str,
+) -> tuple[bool, list[str]]:
+    """Sprawdza, czy poprawki użytkownika są wystarczające. Zwraca (all_good, issues)."""
+    user_content = f"""Oryginalny (problematyczny) fragment:
+---
+{bad_text}
+---
+
+Uzasadnienie, czemu był źle:
+---
+{reasoning}
+---
+
+Zaktualizowany tekst po poprawkach użytkownika:
+---
+{updated_text}
+---
+
+Czy zaktualizowany tekst jest w porządku? Zwróć JSON: {{"all_good": true/false, "issues": [...]}}."""
+
+    response = await client.chat.completions.create(
+        model=settings.openai_model,
+        messages=[
+            {"role": "system", "content": SYSTEM_VERIFY},
+            {"role": "user", "content": user_content},
+        ],
+    )
+    content = response.choices[0].message.content or ""
+    return _parse_verify_response(content)

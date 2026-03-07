@@ -67,3 +67,19 @@ class WynikAnalizy(BaseModel):
 
 class AnalizeResponse(BaseModel):
     results: list[WynikAnalizy] = Field(..., description="Lista znalezionych problemów i sugestii")
+
+
+# --- Verify improvement (sprawdzenie poprawek użytkownika) ---
+
+
+class VerifyImprovementRequest(BaseModel):
+    bad_text: str = Field(..., description="Oryginalny fragment oznaczony jako problematyczny")
+    reasoning: str = Field(..., description="Uzasadnienie, czemu ten fragment był źle (treść_poprawki)")
+    updated_text: str = Field(..., description="Tekst po poprawkach użytkownika")
+
+
+class VerifyImprovementResponse(BaseModel):
+    """Albo all_good=True (wtedy issues=[]), albo all_good=False i lista issues."""
+
+    all_good: bool = Field(..., description="Czy poprawki użytkownika są wystarczające")
+    issues: list[str] = Field(default_factory=list, description="Pozostałe problemy; puste gdy all_good=True")
