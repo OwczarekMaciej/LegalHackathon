@@ -1,4 +1,4 @@
-# Legal Design Hackathon 2026 | [Nazwa Projektu]
+# Legal Design Hackathon 2026 | TL;DR Law (Too Long; Didn't Read)
 
 Krótki opis: Narzędzie do transformacji skomplikowanych dokumentów prawnych w przejrzyste, zrozumiałe treści z automatyczną wizualizacją procesów.
 
