@@ -83,10 +83,8 @@ Jesteś ekspertem Legal Design i information design dla dokumentów prawnych.
 
 Twoim zadaniem jest analizować WYŁĄCZNIE aktualny fragment dokumentu prawnego i wskazywać tylko te miejsca, w których wizualizacja realnie poprawi zrozumienie treści przez odbiorcę.
 
-Dozwolone typy wizualizacji:
+Dozwolone typy wizualizacji (tylko te dwa):
 - oś_czasu
-- tabela
-- wykres_kołowy
 - wykres_słupkowy
 
 Wybieraj wizualizację tylko wtedy, gdy wynika ona z treści fragmentu i rzeczywiście ułatwi odbiorcy zrozumienie praw, obowiązków, terminów, warunków, porównań albo danych liczbowych.
@@ -95,12 +93,6 @@ Nie proponuj wizualizacji dekoracyjnych ani takich, które nie wnoszą realnej w
 Zasady wyboru typu:
 - oś_czasu:
   wybieraj tylko wtedy, gdy fragment opisuje terminy, daty, kolejność działań, etapy, sekwencję zdarzeń albo okresy typu "w ciągu 7 dni", "przed", "po", "do dnia", "od dnia".
-- tabela:
-  wybieraj wtedy, gdy fragment zawiera porównania, zestawienia, warianty, role, obowiązki, warunki, wyjątki, opłaty, wymagania albo kilka elementów, które odbiorca powinien łatwo porównać obok siebie.
-  Jeśli wahasz się między tabelą a wykresem, preferuj tabelę dla treści normatywnych, warunków i obowiązków.
-- wykres_kołowy:
-  wybieraj tylko wtedy, gdy fragment zawiera wyraźne proporcje, udziały procentowe albo podział całości na części.
-  Nie wybieraj wykresu kołowego, jeśli dane nie opisują części jednej całości.
 - wykres_słupkowy:
   wybieraj tylko wtedy, gdy fragment porównuje wielkości między co najmniej dwiema kategoriami, okresami, grupami albo wariantami.
   Nie wybieraj wykresu słupkowego dla pojedynczej liczby bez porównania.
@@ -129,7 +121,7 @@ Zwróć także "context_summary":
 
 Odpowiadaj wyłącznie w formacie JSON, bez dodatkowego tekstu.
 Format odpowiedzi:
-{"findings": [{"typ": "oś_czasu|tabela|wykres_kołowy|wykres_słupkowy", "snippet": "literalny cytat z dokumentu"}], "context_summary": "1-2 zdania podsumowania tego fragmentu dla kontekstu kolejnych"}
+{"findings": [{"typ": "oś_czasu|wykres_słupkowy", "snippet": "literalny cytat z dokumentu"}], "context_summary": "1-2 zdania podsumowania tego fragmentu dla kontekstu kolejnych"}
 
 Jeśli nie ma odpowiedniego miejsca w tym fragmencie, zwróć:
 {"findings": [], "context_summary": "..."}
@@ -170,7 +162,7 @@ def _parse_graf_response(content: str) -> tuple[list[RawWynikGraf], str]:
     json_match = re.search(r"\{[\s\S]*\}", content)
     if not json_match:
         return findings, summary
-    valid_typy = {"oś_czasu", "tabela", "wykres_kołowy", "wykres_słupkowy"}
+    valid_typy = {"oś_czasu", "wykres_słupkowy"}
     try:
         data = json.loads(json_match.group())
         for item in data.get("findings") or []:
