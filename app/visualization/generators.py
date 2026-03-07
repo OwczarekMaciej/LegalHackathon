@@ -25,7 +25,7 @@ def setup_modern_axes(ax):
     ax.tick_params(axis='y', colors=TEXT_COLOR, labelsize=12, length=0, pad=10)
 
 def generate_chart_png(data: dict) -> bytes:
-    """Generuje niesamowicie czysty PNG dla typu 'wykres'"""
+    """Generuje niesamowicie czysty i kolorowy PNG dla typu 'wykres'"""
     labels = data.get("labels", [])
     if data.get("datasets"):
         values = data["datasets"][0].get("data", [])
@@ -39,18 +39,38 @@ def generate_chart_png(data: dict) -> bytes:
     
     setup_modern_axes(ax)
 
-    # Rysowanie słupków z pięknym kolorem
-    bars = ax.bar(labels, values, color=SECONDARY_COLOR, edgecolor="none", zorder=3, width=0.55)
+    # Kolorowa Paleta Legal Design (taka sama jak w osi czasu)
+    NODE_COLORS = [
+        "#D94833", # Elegancka czerwień/cegła
+        "#2B6CB0", # Klasyczny Niebieski
+        "#38A169", # Profesjonalna zieleń
+        "#D69E2E", # Musztardowy żółty
+        "#805AD5", # Śliwkowy fiolet
+        "#319795"  # Turkusowy
+    ]
+    
+    # Dostosuj kolory słupków w zależności od ich ilości
+    bar_colors = [NODE_COLORS[i % len(NODE_COLORS)] for i in range(len(labels))]
 
-    # Etykiety nad słupkami
-    for bar in bars:
+    # Rysowanie słupków z piękną paletą
+    bars = ax.bar(labels, values, color=bar_colors, edgecolor="none", zorder=3, width=0.55)
+
+    # Etykiety nad słupkami (w pudełkach dla lepszej czytelności)
+    for bar, color in zip(bars, bar_colors):
         h = bar.get_height()
         ax.text(
             bar.get_x() + bar.get_width() / 2., 
-            h + (max(values) * 0.02),
+            h + (max(values) * 0.05),
             f'{h}',
             ha='center', va='bottom',
-            fontsize=12, fontweight='bold', color=PRIMARY_COLOR
+            fontsize=12, fontweight='bold', color=color,
+            bbox=dict(
+                boxstyle="round,pad=0.4",
+                facecolor="#F8FAFC",
+                edgecolor=color, # Ramka pod kolor słupka
+                linewidth=1.2,
+                alpha=0.9
+            )
         )
 
     # Tytuł wyrównany do lewej (styl raportowy)
@@ -62,6 +82,9 @@ def generate_chart_png(data: dict) -> bytes:
         loc="left", 
         pad=25
     )
+    
+    # Skalujemy margines Y, by pudełka z wartościami nie wychodziły poza krawędź
+    ax.set_ylim(0, max(values) * 1.2 if values else 1)
 
     plt.tight_layout(pad=3.0)
     buf = io.BytesIO()
@@ -96,7 +119,7 @@ def generate_graph_png(data: dict) -> bytes:
     return buf.getvalue()
 
 def generate_timeline_png(data: dict) -> bytes:
-    """Generuje piękną minimalistyczną oś czasu"""
+    """Generuje piękną kolorową i minimalistyczną oś czasu"""
     events = data.get("events", [])
     
     if not events:
@@ -140,43 +163,92 @@ def generate_timeline_png(data: dict) -> bytes:
     # 1. Rysowanie linii kręgosłupa
     ax.plot([x_positions[0], x_positions[-1]], [0, 0], color=ACCENT_COLOR, linewidth=4, zorder=1)
 
-    # 2. Rysowanie węzłów i adnotacji
-    levels = [1.2, -1.2, 1.2, -1.2, 1.2, -1.2] * (len(parsed_events) // 6 + 1)
+    # Kolorowa Paleta Legal Design (rozszerzona do urozmaicania węzłów na osi)
+    NODE_COLORS = [
+        "#D94833", # Elegancka czerwień/cegła
+        "#2B6CB0", # Klasyczny Niebieski
+        "#38A169", # Profesjonalna zieleń
+        "#D69E2E", # Musztardowy żółty
+        "#805AD5", # Śliwkowy fiolet
+        "#319795"  # Turkusowy
+    ]
+
+    # Dinamiczne skalowanie dla dużej liczby punktów
+    num_events = len(parsed_events)
+    base_font_size = max(8, 12 - (num_events // 3))
+    base_marker_size = max(10, 18 - (num_events // 2))
+    
+    # Rozrzucenie poziomów Y bardziej zróżnicowanie jeśli punktów jest dużo
+    if num_events > 6:
+        pattern = [1.2, -1.2, 1.8, -1.8, 2.4, -2.4]
+    elif num_events > 4:
+        pattern = [1.2, -1.2, 1.6, -1.6]
+    else:
+        pattern = [1.2, -1.2]
+        
+    levels = (pattern * (num_events // len(pattern) + 1))[:num_events]
     
     for i, (x_pos, d_str, l_str, lvl) in enumerate(zip(x_positions, dates_str, labels, levels)):
-        # Kropka na osi (duża, estetyczna)
-        ax.plot(x_pos, 0, marker="o", markersize=18, color=SECONDARY_COLOR, markeredgecolor="white", markeredgewidth=3, zorder=3)
+        current_color = NODE_COLORS[i % len(NODE_COLORS)]
         
-        # Cienka kreska łącząca z tekstem
-        ax.plot([x_pos, x_pos], [0, lvl * 0.7], color=SECONDARY_COLOR, linestyle=":", linewidth=2, zorder=2)
+        # Kropka na osi (zmniejszana dynamicznie)
+        ax.plot(x_pos, 0, marker="o", markersize=base_marker_size, color=current_color, markeredgecolor="white", markeredgewidth=2, zorder=3)
         
-        # Pudełko tekstowe z datą i tytułem (zostawiamy puste miejsce na pogrubioną datę u samej góry/z samego dołu pudełka)
-        box_va = "bottom" if lvl > 0 else "top"
-        text_content = f" \n {l_str} " if box_va == "bottom" else f" {l_str} \n "
+        # Cienka kreska łącząca z tekstem pod kolor węzła
+        ax.plot([x_pos, x_pos], [0, lvl * 0.7], color=current_color, linestyle=":", linewidth=2, zorder=2)
+        
+        # Nakładka Daty (Rysowana najpierw, przytulona do głównego poziomu pudełka)
+        date_y_offset = 0.12 if lvl > 0 else -0.12
+        date_y_offset = date_y_offset * (base_font_size / 10)
         
         ax.text(
-            x_pos, lvl * 0.8,
-            text_content,
-            ha="center", va=box_va,
-            fontsize=12,
+            x_pos, lvl * 0.82 + date_y_offset,  
+            d_str,
+            ha="center", va="center",
+            fontsize=base_font_size + 1,
+            fontweight="bold",
+            color=current_color,
+            zorder=6,
+            bbox=dict(
+                boxstyle="square,pad=0.2",
+                facecolor="white", # Daty leżą na osobnym czystym białym prostokącie
+                edgecolor="none",  # Brak widocznej ramki dla samej daty
+            ),
+        )
+        
+        import textwrap
+        wrapped_text = textwrap.fill(l_str, width=25)
+        if len(wrapped_text) > 80:
+             wrapped_text = wrapped_text[:80] + "..."
+             
+        # Liczymy ile jest faktycznie linijek po zawinięciu
+        num_lines = wrapped_text.count("\n") + 1
+             
+        # Pudełko opisowe tytułu (Przesunięte głębiej na zewnątrz od daty, tym dalej im więcej linijek)
+        # Baza 0.40, a za każdą dodatkową linijkę dodajemy 0.15 odległości
+        base_offset = 0.40 + (0.15 * (num_lines - 1))
+        box_y_offset = base_offset if lvl > 0 else -base_offset
+        box_y_offset = box_y_offset * (base_font_size / 10)
+             
+        ax.text(
+            x_pos, lvl * 0.82 + date_y_offset + box_y_offset,
+            wrapped_text,
+            ha="center", va="center",
+            multialignment="center",
+            fontsize=base_font_size,
             color=PRIMARY_COLOR,
             fontweight="normal",
             bbox=dict(
-                boxstyle="round,pad=0.8,rounding_size=0.4",
-                facecolor="white",
-                edgecolor=ACCENT_COLOR,
-                linewidth=1.5
-            )
+                boxstyle="round,pad=0.6,rounding_size=0.3",
+                facecolor="#F8FAFC",
+                edgecolor=current_color,
+                linewidth=1.2
+            ),
+            zorder=4
         )
-        # Pogrubienie samej daty w osobistym renderze plt:
-        ax.text(
-            x_pos, lvl * 0.8 + (0.3 if box_va == "top" else -0.3),  
-            d_str,  # Pogrubiona wstawka
-            ha="center", va=box_va,
-            fontsize=12,
-            fontweight="bold",
-            color=SECONDARY_COLOR,
-        )
+        
+        # Grubaa linia spinająca pudełka ze sobą i z osią (dla spójności)
+        ax.plot([x_pos, x_pos], [lvl * 0.82 + date_y_offset, lvl * 0.82 + date_y_offset + box_y_offset], color=current_color, linestyle="-", linewidth=1.2, zorder=2)
 
     # Tytuł
     ax.set_title(
@@ -188,12 +260,17 @@ def generate_timeline_png(data: dict) -> bytes:
         pad=30
     )
 
-    # Powiększ limity osi by pudła nie ucinało
-    ax.set_ylim(-3, 3)
-    margin = (x_positions[-1] - x_positions[0]) * 0.1
+    # Zwiększenie limitów dla bardzo obszernego marginesu oddychającego na osi Y
+    # Oblicz z max i min levelsa, żeby upewnić się, że nie utnie!
+    max_lvl = max([abs(l) for l in levels]) if levels else 1.2
+    ax.set_ylim(-(max_lvl + 2.0), (max_lvl + 2.0))
+    
+    # Znacznie szerszy margines na osi X
+    margin = (x_positions[-1] - x_positions[0]) * 0.15 + 0.5
     ax.set_xlim(x_positions[0] - margin, x_positions[-1] + margin)
 
-    plt.tight_layout()
+    # Duży ogólny padding całej figury
+    plt.tight_layout(pad=2.0)
     buf = io.BytesIO()
     plt.savefig(buf, format='png', dpi=200, bbox_inches='tight')
     buf.seek(0)
