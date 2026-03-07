@@ -7,8 +7,18 @@ Krótki opis: Narzędzie do transformacji skomplikowanych dokumentów prawnych w
 ## 🚀 O Projekcie
 Projekt rozwiązuje problem niezrozumiałych umów i pism procesowych. System analizuje tekst, wyłapuje żargon i proponuje zmiany w duchu **Plain Language**, jednocześnie generując schematy graficzne ułatwiające zrozumienie logiki dokumentu.
 
-uvicorn app.main:app --reload
+## 🛠 Instalacja i Uruchomienie
 
+1. Utwórz plik `.env` w głównym katalogu projektu:
+```env
+OPENAI_API_KEY=sk-...
+OPENAI_MODEL=gpt-5.4
+```
+
+2. Uruchom serwer developerski FastAPI:
+```bash
+uvicorn app.main:app --reload
+```
 ---
 
 ## 🔌 Przykłady użycia API (Wizualizacje AI)
