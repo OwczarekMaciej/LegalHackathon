@@ -1,172 +1,145 @@
 import { useRef, useState, useLayoutEffect, useCallback } from "react";
 import { buildSegments, topSeverity } from "../utils/segments";
-import { useCursorStabilizer } from "../hooks/useCursorStabilizer";
 import { SEVERITY_STYLES } from "../data/theme";
 import { Tooltip } from "./Tooltip";
 
-/**
- * PageView
- *
- * Renders a single page as a paper card. Internally identical editing logic
- * to the old DocumentView, but scoped to one page's text and suggestions.
- *
- * Props:
- *   pageIndex    number
- *   text         string   — this page's text
- *   suggestions  Array    — only suggestions where s.page === pageIndex
- *   onApplyEdit  fn(suggestionId, pageIndex, newPageText, editStart, delta)
- *   onDismiss    fn(id)
- */
 export function PageView({ pageIndex, text, suggestions, onApplyEdit, onDismiss }) {
-  const containerRef  = useRef(null);
-  const editableRef   = useRef(null);
-  const savedCursorRef = useRef(null);
-
+  const containerRef = useRef(null);
   const [hoveredSuggIds, setHoveredSuggIds] = useState([]);
-  const [anchorRect, setAnchorRect]         = useState(null);
+  const [anchorRect,     setAnchorRect]     = useState(null);
 
-  const { restoreCursor } = useCursorStabilizer(editableRef);
+  const spanRefs      = useRef({});  // suggestion.id → span DOM element
+  const pendingCursor = useRef(null); // { suggId, offset } — set before state update
 
+  // Single layout effect: after every render, if a cursor restore is pending,
+  // look up the (possibly new) span DOM node and place the cursor.
   useLayoutEffect(() => {
-    if (savedCursorRef.current !== null) {
-      restoreCursor(savedCursorRef.current);
-      savedCursorRef.current = null;
-    }
+    const p = pendingCursor.current;
+    if (!p) return;
+    const el = spanRefs.current[p.suggId];
+    if (!el) return;
+    const textNode = el.firstChild;
+    if (!textNode || textNode.nodeType !== Node.TEXT_NODE) return;
+    pendingCursor.current = null; // clear only after we've successfully resolved el
+    try {
+      const off   = Math.min(Math.max(p.offset, 0), textNode.length);
+      const range = document.createRange();
+      range.setStart(textNode, off);
+      range.collapse(true);
+      const sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(range);
+    } catch {}
   });
-
-  const segments = buildSegments(text, suggestions);
 
   const handleKeyDown = useCallback((e, suggestion) => {
     const allowedKeys = ["ArrowLeft","ArrowRight","ArrowUp","ArrowDown","Home","End","Tab"];
     if (allowedKeys.includes(e.key)) return;
     if ((e.ctrlKey || e.metaKey) && ["a","c","z","y"].includes(e.key.toLowerCase())) return;
-
     e.preventDefault();
 
     const sel = window.getSelection();
     if (!sel || sel.rangeCount === 0) return;
+    const range = sel.getRangeAt(0);
 
-    const el = editableRef.current;
-    let anchorOff = 0, focusOff = 0, count = 0;
-    const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+    const spanEl = spanRefs.current[suggestion.id];
+    if (!spanEl) return;
+
+    // Measure cursor position within this span by walking only its own text nodes.
+    // This avoids any coordinate mismatch with the \n\n paragraph structure.
+    let relStart = 0, relEnd = 0, counted = 0;
+    const walker = document.createTreeWalker(spanEl, NodeFilter.SHOW_TEXT);
     while (walker.nextNode()) {
       const node = walker.currentNode;
       const len  = node.textContent.length;
-      if (node === sel.anchorNode) anchorOff = count + sel.anchorOffset;
-      if (node === sel.focusNode)  focusOff  = count + sel.focusOffset;
-      count += len;
+      if (node === range.startContainer) relStart = counted + range.startOffset;
+      if (node === range.endContainer)   relEnd   = counted + range.endOffset;
+      counted += len;
     }
-    const rawStart = Math.min(anchorOff, focusOff);
-    const rawEnd   = Math.max(anchorOff, focusOff);
 
-    // Clamp to suggestion bounds
-    const bStart   = suggestion.start;
-    const bEnd     = suggestion.end;
-    const selStart = Math.max(rawStart, bStart);
-    const selEnd   = Math.min(rawEnd,   bEnd);
+    const spanLen = spanEl.textContent.length;
+    relStart = Math.max(0, Math.min(relStart, spanLen));
+    relEnd   = Math.max(relStart, Math.min(relEnd, spanLen));
 
-    let newText = text, newCursor = selStart, delta = 0, editStart = selStart;
+    const absStart = suggestion.start + relStart;
+    const absEnd   = suggestion.start + relEnd;
+
+    let newText = text, newCursorRel = relStart, delta = 0;
 
     if (e.key === "Backspace") {
-      if (rawStart < selEnd) {
-        const from = Math.max(rawStart, bStart);
-        delta   = -(selEnd - from);
-        newText = text.slice(0, from) + text.slice(selEnd);
-        newCursor = from; editStart = from;
-      } else if (selStart > bStart) {
-        delta = -1; editStart = selStart - 1;
-        newText   = text.slice(0, selStart - 1) + text.slice(selStart);
-        newCursor = selStart - 1;
-      }
-    } else if (e.key === "Delete") {
-      if (rawStart < selEnd) {
-        const from = Math.max(rawStart, bStart);
-        delta   = -(selEnd - from);
-        newText = text.slice(0, from) + text.slice(selEnd);
-        newCursor = from; editStart = from;
-      } else if (selEnd < bEnd) {
+      if (relStart < relEnd) {
+        delta = -(relEnd - relStart);
+        newText = text.slice(0, absStart) + text.slice(absEnd);
+        newCursorRel = relStart;
+      } else if (relStart > 0) {
         delta = -1;
-        newText   = text.slice(0, selStart) + text.slice(selStart + 1);
-        newCursor = selStart;
-      }
-    } else if (e.key === "Enter") {
-      delta   = 1 - (selEnd - selStart);
-      newText = text.slice(0, selStart) + "\n" + text.slice(selEnd);
-      newCursor = selStart + 1;
+        newText = text.slice(0, absStart - 1) + text.slice(absStart);
+        newCursorRel = relStart - 1;
+      } else return;
+    } else if (e.key === "Delete") {
+      if (relStart < relEnd) {
+        delta = -(relEnd - relStart);
+        newText = text.slice(0, absStart) + text.slice(absEnd);
+        newCursorRel = relStart;
+      } else if (relEnd < spanLen) {
+        delta = -1;
+        newText = text.slice(0, absStart) + text.slice(absStart + 1);
+        newCursorRel = relStart;
+      } else return;
     } else if (e.key.length === 1) {
-      delta   = 1 - (selEnd - selStart);
-      newText = text.slice(0, selStart) + e.key + text.slice(selEnd);
-      newCursor = selStart + 1;
-    } else {
-      return;
-    }
+      delta = 1 - (relEnd - relStart);
+      newText = text.slice(0, absStart) + e.key + text.slice(absEnd);
+      newCursorRel = relStart + 1;
+    } else return;
 
     if (newText === text) return;
-    savedCursorRef.current = newCursor;
-    onApplyEdit(suggestion.id, pageIndex, newText, editStart, delta);
+
+    // Store cursor target before the state update triggers re-render
+    pendingCursor.current = { suggId: suggestion.id, offset: newCursorRel };
+    onApplyEdit(suggestion.id, pageIndex, newText, absStart, delta);
   }, [text, pageIndex, onApplyEdit]);
 
   const handleMouseEnter = useCallback((e, suggList) => {
-    if (!suggList.length) return;
     setHoveredSuggIds(suggList.map((s) => s.id));
     setAnchorRect(e.currentTarget.getBoundingClientRect());
   }, []);
-
   const handleMouseLeave = useCallback(() => {
-    setHoveredSuggIds([]);
-    setAnchorRect(null);
+    setHoveredSuggIds([]); setAnchorRect(null);
   }, []);
 
   const hoveredSuggestions = suggestions.filter((s) => hoveredSuggIds.includes(s.id));
 
+  const segments = buildSegments(text, suggestions);
+  let absPos = 0;
+  const annotatedSegments = segments.map((seg) => {
+    const start = absPos;
+    absPos += seg.text.length;
+    return { ...seg, absStart: start, absEnd: absPos };
+  });
+
+  const paragraphs = [];
+  let offset = 0;
+  for (const chunk of text.split("\n\n")) {
+    paragraphs.push({ text: chunk, offset });
+    offset += chunk.length + 2;
+  }
+
   return (
     <div ref={containerRef} style={{ position: "relative" }}>
-      <div
-        ref={editableRef}
-        style={{
-          fontFamily: "'Crimson Pro', Georgia, serif",
-          fontSize: 15.5,
-          lineHeight: 1.9,
-          color: "#1a1814",
-          whiteSpace: "pre-wrap",
-          wordBreak: "break-word",
-          outline: "none",
-          userSelect: "text",
-        }}
-      >
-        {segments.map((seg, i) => {
-          if (!seg.suggestions.length) {
-            return <span key={i} style={{ cursor: "default" }}>{seg.text}</span>;
-          }
-          const top      = topSeverity(seg.suggestions);
-          const style    = SEVERITY_STYLES[top.severity];
-          const isHovered = seg.suggestions.some((s) => hoveredSuggIds.includes(s.id));
-          const isEdited  = seg.suggestions.some((s) => s.status === "edited");
-
-          return (
-            <span
-              key={i}
-              contentEditable
-              suppressContentEditableWarning
-              tabIndex={0}
-              onKeyDown={(e) => handleKeyDown(e, top)}
-              onMouseEnter={(e) => handleMouseEnter(e, seg.suggestions)}
+      <div style={{ outline: "none" }}>
+        {paragraphs.map((para, pi) => (
+          <p key={pi} style={paraStyle}>
+            <ParagraphContent
+              para={para}
+              annotatedSegments={annotatedSegments}
+              hoveredSuggIds={hoveredSuggIds}
+              spanRefs={spanRefs}
+              onKeyDown={handleKeyDown}
+              onMouseEnter={handleMouseEnter}
               onMouseLeave={handleMouseLeave}
-              style={{
-                background: isHovered ? style.bgHover : style.bg,
-                borderBottom: `2px ${isEdited ? "dashed" : "solid"} ${style.border}`,
-                borderRadius: "2px 2px 0 0",
-                cursor: "text",
-                outline: "none",
-                caretColor: style.dot,
-                transition: "background 0.15s",
-                paddingBottom: 1,
-              }}
-            >
-              {seg.text}
-            </span>
-          );
-        })}
+            />
+          </p>
+        ))}
       </div>
 
       {hoveredSuggestions.length > 0 && anchorRect && (
@@ -180,3 +153,77 @@ export function PageView({ pageIndex, text, suggestions, onApplyEdit, onDismiss 
     </div>
   );
 }
+
+// ─── ParagraphContent ─────────────────────────────────────────────────────────
+
+function ParagraphContent({ para, annotatedSegments, hoveredSuggIds, spanRefs, onKeyDown, onMouseEnter, onMouseLeave }) {
+  const paraStart = para.offset;
+  const paraEnd   = para.offset + para.text.length;
+  const nodes     = [];
+  let   cursor    = paraStart;
+
+  for (const seg of annotatedSegments) {
+    if (seg.absEnd <= paraStart || seg.absStart >= paraEnd) continue;
+
+    const clipStart = Math.max(seg.absStart, paraStart);
+    const clipEnd   = Math.min(seg.absEnd,   paraEnd);
+    if (clipStart >= clipEnd) continue;
+
+    if (cursor < clipStart) {
+      nodes.push(<span key={`g-${cursor}`}>{para.text.slice(cursor - paraStart, clipStart - paraStart)}</span>);
+    }
+
+    const segText = para.text.slice(clipStart - paraStart, clipEnd - paraStart);
+    if (!segText) { cursor = clipEnd; continue; }
+
+    if (!seg.suggestions.length) {
+      nodes.push(<span key={`p-${clipStart}`}>{segText}</span>);
+    } else {
+      const top       = topSeverity(seg.suggestions);
+      const style     = SEVERITY_STYLES[top.severity];
+      const isHovered = seg.suggestions.some((s) => hoveredSuggIds.includes(s.id));
+      const isEdited  = seg.suggestions.some((s) => s.status === "edited");
+
+      nodes.push(
+        <span
+          key={`h-${clipStart}`}
+          ref={(el) => { if (el) spanRefs.current[top.id] = el; }}
+          contentEditable suppressContentEditableWarning tabIndex={0}
+          onKeyDown={(e) => onKeyDown(e, top)}
+          onMouseEnter={(e) => onMouseEnter(e, seg.suggestions)}
+          onMouseLeave={onMouseLeave}
+          style={{
+            background:    isHovered ? style.bgHover : style.bg,
+            borderBottom:  `2px ${isEdited ? "dashed" : "solid"} ${style.border}`,
+            borderRadius:  "2px 2px 0 0",
+            cursor:        "text",
+            outline:       "none",
+            caretColor:    style.dot,
+            transition:    "background 0.15s",
+            paddingBottom: 1,
+          }}
+        >
+          {segText}
+        </span>
+      );
+    }
+    cursor = clipEnd;
+  }
+
+  if (cursor < paraEnd) {
+    nodes.push(<span key={`t-${cursor}`}>{para.text.slice(cursor - paraStart)}</span>);
+  }
+
+  return nodes.length ? nodes : <span>{para.text}</span>;
+}
+
+const paraStyle = {
+  margin:     "0 0 1.15em 0",
+  padding:    0,
+  lineHeight: 1.85,
+  fontSize:   14.5,
+  color:      "#1a1814",
+  fontFamily: "'Crimson Pro', Georgia, serif",
+  textAlign:  "justify",
+  hyphens:    "auto",
+};
