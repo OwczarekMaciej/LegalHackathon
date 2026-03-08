@@ -1,6 +1,7 @@
 import { useState, useCallback } from "react";
 import * as pdfjsLib from "pdfjs-dist";
 import pdfjsWorker from "pdfjs-dist/build/pdf.worker.mjs?url";
+import { normalizePageText } from "../utils/textNormalize.js";
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker;
 
@@ -54,10 +55,8 @@ function extractPageText(textContent) {
   const medianGap = gaps[Math.floor(gaps.length / 2)] || lines[0].lineHeight;
 
   // ── 5. Assemble ─────────────────────────────────────────────────────────────
-  // Use a SINGLE 
-  // This ensures the backend (which receives this exact string as a fragment)
-  // computes offsets against the same character sequence we display and store.
-  // Soft line wraps within a paragraph become a single space.
+  // Single \n for paragraph break, single space for line wrap. Same character
+  // sequence is sent to the backend so offsets match.
   const parts = [lines[0].text];
   for (let i = 1; i < lines.length; i++) {
     const gap = lines[i - 1].y - lines[i].y;
@@ -65,7 +64,7 @@ function extractPageText(textContent) {
     parts.push(lines[i].text);
   }
 
-  return parts.join("").trim();
+  return normalizePageText(parts.join("").trim());
 }
 
 

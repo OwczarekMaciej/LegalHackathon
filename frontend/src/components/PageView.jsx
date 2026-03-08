@@ -189,7 +189,7 @@ function ParagraphContent({ para, annotatedSegments, hoveredSuggIds, spanRefs, o
     } else {
       const top        = topSeverity(seg.suggestions);
       const isResolved = seg.suggestions.every((s) => s.status === "resolved");
-      const style      = SEVERITY_STYLES[isResolved ? "resolved" : top.severity];
+      const style      = SEVERITY_STYLES[isResolved ? "resolved" : top.severity] ?? SEVERITY_STYLES.error;
       const isHovered  = !isResolved && seg.suggestions.some((s) => hoveredSuggIds.includes(s.id));
       const isEdited   = seg.suggestions.some((s) => s.status === "edited");
 
@@ -197,7 +197,7 @@ function ParagraphContent({ para, annotatedSegments, hoveredSuggIds, spanRefs, o
         <span
           key={`h-${clipStart}`}
           ref={(el) => { if (el) spanRefs.current[top.id] = el; }}
-          contentEditable={!isResolved} suppressContentEditableWarning tabIndex={isResolved ? -1 : 0}
+          contentEditable={!isResolved} suppressContentEditableWarning tabIndex={isResolved ? -1 : 0} spellCheck={false}
           onKeyDown={(e) => !isResolved && onKeyDown(e, top)}
           onMouseEnter={(e) => !isResolved && onMouseEnter(e, seg.suggestions)}
           onMouseLeave={onMouseLeave}
@@ -231,12 +231,12 @@ function VizBlock({ imgUrl, onRemove }) {
     <div style={{ margin: "16px 0 20px", position: "relative" }}>
       <img
         src={imgUrl}
-        alt="Generated visualisation"
+        alt="Wygenerowana wizualizacja"
         style={{ width: "100%", borderRadius: 6, display: "block", border: "1px solid rgba(0,0,0,0.08)" }}
       />
       <button
         onClick={onRemove}
-        title="Remove visualisation"
+        title="Usuń wizualizację"
         style={{
           position: "absolute", top: 6, right: 6,
           background: "rgba(0,0,0,0.45)", border: "none", borderRadius: 4,

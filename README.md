@@ -31,6 +31,11 @@ OPENAI_MODEL=gpt-5.4
 ```bash
 uvicorn app.main:app --reload
 ```
+
+5. Uruchom frontend (w drugim terminalu). W trybie dev requesty do `/api` są proxy’owane na backend (localhost:8000), co unika błędów połączenia:
+```bash
+cd frontend && npm install && npm run dev
+```
 ---
 
 ## 🔌 Przykłady użycia API (Wizualizacje AI)

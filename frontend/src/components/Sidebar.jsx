@@ -9,41 +9,41 @@ export function Sidebar({
 }) {
   const active   = suggestions.filter((s) => s.status !== "resolved");
   const resolved = suggestions.filter((s) => s.status === "resolved");
-  const counts   = {
-    error:   active.filter((s) => s.severity === "error").length,
-    warning: active.filter((s) => s.severity === "warning").length,
-    info:    active.filter((s) => s.severity === "info").length,
-  };
+  const textCount = active.filter((s) => s.severity === "error").length;
+  const vizCount  = active.filter((s) => s.severity === "info").length;
   const editedCount = active.filter((s) => s.status === "edited").length;
 
+  const statItems = [
+    { key: "error", count: textCount, style: SEVERITY_STYLES.error, label: "Problemy z tekstem" },
+    { key: "info",  count: vizCount,  style: SEVERITY_STYLES.info,  label: "Sugestie wizualizacji" },
+  ];
+
   return (
-    <div style={{ width: 280, flexShrink: 0, display: "flex", flexDirection: "column", background: "var(--surface-1)", borderLeft: "1px solid var(--border)", overflow: "hidden" }}>
+    <div style={{ width: 280, flexShrink: 0, minHeight: 0, display: "flex", flexDirection: "column", background: "var(--surface-1)", borderLeft: "1px solid var(--border)", overflow: "hidden" }}>
 
       {/* Stats + controls */}
-      <div style={{ padding: "18px 16px 14px", borderBottom: "1px solid var(--border)" }}>
+      <div style={{ flexShrink: 0, padding: "18px 16px 14px", borderBottom: "1px solid var(--border)" }}>
         <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.1em", color: "var(--text-muted)", textTransform: "uppercase", marginBottom: 10 }}>
-          Analysis
+          Analiza
         </div>
 
         <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
-          {Object.entries(counts).map(([sev, count]) => {
-            const s = SEVERITY_STYLES[sev];
-            return (
-              <div key={sev} style={{ flex: 1, textAlign: "center", padding: "7px 4px", background: s.bg, borderRadius: 7, border: `1px solid ${s.border}` }}>
-                <div style={{ fontSize: 18, fontWeight: 700, color: s.dot }}>{count}</div>
-                <div style={{ fontSize: 10, color: s.dot, opacity: 0.85, textTransform: "capitalize" }}>
-                  {sev === "error" ? "Issues" : sev === "warning" ? "Warnings" : "Tips"}
-                </div>
+          {statItems.map(({ key, count, style: s, label }) => (
+            <div key={key} style={{ flex: 1, textAlign: "center", padding: "7px 4px", background: s.bg, borderRadius: 7, border: `1px solid ${s.border}` }}>
+              <div style={{ fontSize: 18, fontWeight: 700, color: s.dot }}>{count}</div>
+              <div style={{ fontSize: 10, color: s.dot, opacity: 0.85 }}>
+                {label}
               </div>
-            );
-          })}
+            </div>
+          ))}
         </div>
 
         <textarea
           value={userPrompt}
           onChange={(e) => onUserPromptChange(e.target.value)}
-          placeholder="Optional instruction to agents…"
+          placeholder="Opcjonalna instrukcja dla agentów…"
           rows={2}
+          spellCheck={false}
           style={{ width: "100%", boxSizing: "border-box", resize: "vertical", padding: "7px 9px", marginBottom: 8, fontSize: 12, fontFamily: "inherit", color: "var(--text-primary)", background: "var(--surface-2)", border: "1px solid var(--border)", borderRadius: 6, outline: "none", lineHeight: 1.5 }}
         />
 
@@ -51,7 +51,7 @@ export function Sidebar({
           onClick={onReanalyse} disabled={isAnalysing}
           style={{ width: "100%", padding: "8px 0", borderRadius: 7, border: editedCount > 0 ? "1px solid var(--accent)" : "1px solid var(--border)", background: editedCount > 0 ? "var(--accent)" : "var(--surface-2)", color: editedCount > 0 ? "#fff" : "var(--text-secondary)", fontSize: 12, fontWeight: 600, cursor: isAnalysing ? "wait" : "pointer", opacity: isAnalysing ? 0.6 : 1, transition: "all 0.15s", letterSpacing: "0.03em" }}
         >
-          {isAnalysing ? "Analysing…" : editedCount > 0 ? `↺  Re-analyse (${editedCount} edited)` : "↺  Re-analyse"}
+          {isAnalysing ? "Analizuję…" : editedCount > 0 ? `↺  Ponów analizę (${editedCount} edyt.)` : "↺  Ponów analizę"}
         </button>
 
         {apiError && (
@@ -61,11 +61,11 @@ export function Sidebar({
         )}
       </div>
 
-      {/* List */}
-      <div style={{ overflowY: "auto", flex: 1 }}>
+      {/* List — own scrollbar */}
+      <div style={{ flex: 1, minHeight: 0, overflowY: "auto" }}>
         {active.length === 0 && resolved.length === 0 && (
           <div style={{ padding: 20, fontSize: 13, color: "var(--text-muted)", textAlign: "center" }}>
-            No active suggestions
+            Brak aktywnych sugestii
           </div>
         )}
 
@@ -86,7 +86,7 @@ export function Sidebar({
         {resolved.length > 0 && (
           <>
             <div style={{ padding: "8px 16px 4px", fontSize: 10, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--text-muted)", borderTop: active.length > 0 ? "1px solid var(--border)" : "none" }}>
-              Resolved ({resolved.length})
+              Rozwiązane ({resolved.length})
             </div>
             {resolved.map((s) => (
               <SuggestionCard
@@ -108,7 +108,7 @@ export function Sidebar({
 
 function SuggestionCard({ s, isActive, onHover, onAccept, onVerify, onResolve, onDismiss, onGenerate, resolved = false }) {
   const [verifyState, setVerifyState] = useState(null); // null | "loading" | { all_good, issues }
-  const style    = SEVERITY_STYLES[resolved ? "resolved" : s.severity];
+  const style    = SEVERITY_STYLES[resolved ? "resolved" : s.severity] ?? SEVERITY_STYLES.error;
   const isJezyk  = s.kategoria === "JEZYK";
   const isEdited = s.status === "edited";
 
@@ -119,7 +119,7 @@ function SuggestionCard({ s, isActive, onHover, onAccept, onVerify, onResolve, o
       setVerifyState(result);
       if (result.all_good) onResolve?.(s.id);
     } catch (err) {
-      setVerifyState({ all_good: false, issues: [err.message ?? "Verification failed."] });
+      setVerifyState({ all_good: false, issues: [err.message ?? "Weryfikacja nie powiodła się."] });
     }
   };
 
@@ -135,15 +135,15 @@ function SuggestionCard({ s, isActive, onHover, onAccept, onVerify, onResolve, o
           {resolved ? "✓" : (TYPE_ICONS[s.type] || "●")}
         </span>
         <span style={{ fontSize: 10, fontWeight: 700, color: resolved ? "#22c55e" : style.dot, textTransform: "uppercase", letterSpacing: "0.06em" }}>
-          {resolved ? "Resolved" : style.label}
+          {resolved ? "Rozwiązane" : style.label}
         </span>
         {isEdited && !resolved && (
           <span style={{ fontSize: 9, fontWeight: 600, color: "#f59e0b", background: "rgba(245,158,11,0.12)", border: "1px solid rgba(245,158,11,0.3)", borderRadius: 4, padding: "1px 5px", letterSpacing: "0.04em" }}>
-            EDITED
+            EDYTOWANO
           </span>
         )}
         {/* Dismiss always available */}
-        <button title="Discard" onClick={() => onDismiss(s.id)} style={iconBtn("var(--text-muted)")}>✕</button>
+        <button title="Odrzuć" onClick={() => onDismiss(s.id)} style={iconBtn("var(--text-muted)")}>✕</button>
       </div>
 
       {/* Reasoning — what's wrong */}
@@ -157,7 +157,7 @@ function SuggestionCard({ s, isActive, onHover, onAccept, onVerify, onResolve, o
       {isJezyk && s.proposedFix && !resolved && (
         <div style={{ margin: "0 14px 8px", padding: "7px 10px", background: "rgba(34,197,94,0.07)", border: "1px solid rgba(34,197,94,0.2)", borderRadius: 6 }}>
           <div style={{ fontSize: 10, fontWeight: 700, color: "#22c55e", letterSpacing: "0.06em", marginBottom: 3, textTransform: "uppercase" }}>
-            Proposed fix
+            Proponowana poprawka
           </div>
           <div style={{ fontSize: 12, color: "var(--text-primary)", lineHeight: 1.55, fontStyle: "italic" }}>
             {s.proposedFix}
@@ -169,7 +169,7 @@ function SuggestionCard({ s, isActive, onHover, onAccept, onVerify, onResolve, o
       {verifyState && verifyState !== "loading" && !verifyState.all_good && (
         <div style={{ margin: "0 14px 8px", padding: "7px 10px", background: "rgba(239,68,68,0.07)", border: "1px solid rgba(239,68,68,0.2)", borderRadius: 6 }}>
           <div style={{ fontSize: 10, fontWeight: 700, color: "#ef4444", marginBottom: 3, textTransform: "uppercase", letterSpacing: "0.06em" }}>
-            Still needs work
+            Wymaga jeszcze pracy
           </div>
           {verifyState.issues.map((iss, i) => (
             <div key={i} style={{ fontSize: 12, color: "var(--text-secondary)", lineHeight: 1.5 }}>• {iss}</div>
@@ -181,17 +181,17 @@ function SuggestionCard({ s, isActive, onHover, onAccept, onVerify, onResolve, o
       {isJezyk && !resolved && (
         <div style={{ display: "flex", gap: 6, padding: "0 14px 10px" }}>
           {s.proposedFix && (
-            <ActionBtn color="#22c55e" onClick={() => onAccept?.(s.id)} title="Replace with proposed fix">
-              ✓ Accept
+            <ActionBtn color="#22c55e" onClick={() => onAccept?.(s.id)} title="Zastąp proponowaną poprawką">
+              ✓ Akceptuj
             </ActionBtn>
           )}
           <ActionBtn
             color="#3b82f6"
             onClick={handleVerify}
             disabled={verifyState === "loading"}
-            title="Ask AI to verify your manual edit"
+            title="Poproś AI o weryfikację Twojej poprawki"
           >
-            {verifyState === "loading" ? "Checking…" : "⟳ Verify fix"}
+            {verifyState === "loading" ? "Sprawdzam…" : "⟳ Zweryfikuj poprawkę"}
           </ActionBtn>
         </div>
       )}
@@ -223,7 +223,7 @@ function GrafActions({ s, onResolve, onGenerate }) {
       setImgUrl(url);
       setState("done");
     } catch (err) {
-      setErrorMsg(err.message ?? "Generation failed.");
+      setErrorMsg(err.message ?? "Generowanie nie powiodło się.");
       setState("error");
     }
   };
@@ -237,12 +237,12 @@ function GrafActions({ s, onResolve, onGenerate }) {
             color="#8b5cf6"
             onClick={handleGenerate}
             disabled={state === "loading"}
-            title="Generate visualisation as PNG"
+            title="Generuj wizualizację jako PNG"
           >
-            {state === "loading" ? "Generating…" : "⬡ Generate"}
+            {state === "loading" ? "Generuję…" : "⬡ Generuj"}
           </ActionBtn>
-          <ActionBtn color="#9ca3af" onClick={() => onResolve?.(s.id)} title="Mark as noted">
-            ✓ Note
+          <ActionBtn color="#9ca3af" onClick={() => onResolve?.(s.id)} title="Oznacz jako odnotowane">
+            ✓ Odnotowano
           </ActionBtn>
         </div>
       )}
@@ -257,17 +257,17 @@ function GrafActions({ s, onResolve, onGenerate }) {
       {/* Generated image */}
       {imgUrl && (
         <div style={{ borderRadius: 6, overflow: "hidden", border: "1px solid var(--border)" }}>
-          <img src={imgUrl} alt="Generated visualisation" style={{ width: "100%", display: "block" }} />
+          <img src={imgUrl} alt="Wygenerowana wizualizacja" style={{ width: "100%", display: "block" }} />
           <div style={{ display: "flex", gap: 6, padding: 8, background: "var(--surface-2)", borderTop: "1px solid var(--border)" }}>
             <a
               href={imgUrl}
               download={`viz-${s.id}.png`}
               style={{ flex: 1, padding: "5px 0", borderRadius: 5, border: "1px solid rgba(139,92,246,0.4)", background: "rgba(139,92,246,0.1)", color: "#8b5cf6", fontSize: 11, fontWeight: 600, textAlign: "center", textDecoration: "none", letterSpacing: "0.02em" }}
             >
-              ↓ Download
+              ↓ Pobierz
             </a>
-            <ActionBtn color="#22c55e" onClick={() => onResolve?.(s.id)} title="Mark as resolved">
-              ✓ Done
+            <ActionBtn color="#22c55e" onClick={() => onResolve?.(s.id)} title="Oznacz jako rozwiązane">
+              ✓ Gotowe
             </ActionBtn>
           </div>
         </div>

@@ -1,4 +1,7 @@
-const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
+// In dev, use same-origin /api (Vite proxies to backend) to avoid ERR_CONNECTION_RESET
+const API_BASE =
+  import.meta.env.VITE_API_URL ??
+  (import.meta.env.DEV ? "/api" : "http://localhost:8000");
 
 export async function analyseDocument(pages, userPrompt = "") {
   const res = await fetch(`${API_BASE}/analize`, {
@@ -6,7 +9,7 @@ export async function analyseDocument(pages, userPrompt = "") {
     headers: { "Content-Type": "application/json" },
     body:    JSON.stringify({ fragments: pages, user_prompt: userPrompt }),
   });
-  if (!res.ok) throw new Error(`Analysis failed (${res.status}): ${await res.text()}`);
+  if (!res.ok) throw new Error(`Analiza nie powiodła się (${res.status}): ${await res.text()}`);
   const { results } = await res.json();
   return normaliseResults(results, pages);
 }
@@ -22,21 +25,33 @@ export async function verifyImprovement(badText, reasoning, updatedText) {
     headers: { "Content-Type": "application/json" },
     body:    JSON.stringify({ bad_text: badText, reasoning, updated_text: updatedText }),
   });
-  if (!res.ok) throw new Error(`Verify failed (${res.status}): ${await res.text()}`);
+  if (!res.ok) throw new Error(`Weryfikacja nie powiodła się (${res.status}): ${await res.text()}`);
   return res.json(); // { all_good, issues }
 }
 
 function normaliseResults(results, pages) {
+  // Backend returns start/end in full-text coordinates (all fragments concatenated).
+  // Convert to per-page offsets so the frontend can use pages[page].slice(start, end).
+  const pageOffsets = [];
+  let pos = 0;
+  for (const p of pages) {
+    pageOffsets.push(pos);
+    pos += (p?.length ?? 0);
+  }
+
   const suggestions = [];
   let id = 1;
 
   for (const r of results) {
     const page     = r.chunk_index ?? 0;
     const pageText = pages[page] ?? "";
-    const { start, end, snippet } = r.miejsce ?? {};
+    const { start: globalStart, end: globalEnd, snippet } = r.miejsce ?? {};
+    const offset   = pageOffsets[page] ?? 0;
+    const start    = globalStart - offset;
+    const end      = globalEnd - offset;
 
-    if (typeof start !== "number" || typeof end !== "number") continue;
-    if (start < 0 || end > pageText.length || start >= end)   continue;
+    if (typeof globalStart !== "number" || typeof globalEnd !== "number") continue;
+    if (start < 0 || end > pageText.length || start >= end) continue;
 
     const isJezyk = r.kategoria === "JEZYK";
 
@@ -77,7 +92,7 @@ export async function generateVisualizationPng(context, visualizationType) {
     headers: { "Content-Type": "application/json", "accept": "image/png" },
     body:    JSON.stringify({ context, visualization_type: visualizationType }),
   });
-  if (!res.ok) throw new Error(`Viz generation failed (${res.status}): ${await res.text()}`);
+  if (!res.ok) throw new Error(`Generowanie wizualizacji nie powiodło się (${res.status}): ${await res.text()}`);
   const blob = await res.blob();
   return URL.createObjectURL(blob);
 }

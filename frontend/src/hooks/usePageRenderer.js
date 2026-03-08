@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { buildCharMap, getRects } from "../utils/charMap";
-import { debugFonts } from "../utils/debugFonts";
 
 export function usePageRenderer(pdfPage, scale = 1.5, patches = []) {
   const canvasRef      = useRef(null);
@@ -37,12 +36,6 @@ export function usePageRenderer(pdfPage, scale = 1.5, patches = []) {
     baseImageRef.current = ctx.getImageData(0, 0, canvas.width, canvas.height);
 
     const textContent = await pdfPage.getTextContent();
-
-    // ── DEBUG: log raw font data so we can see what pdf.js gives us ──────────
-    // Remove this line once font matching is verified
-    debugFonts(textContent);
-    // ─────────────────────────────────────────────────────────────────────────
-
     const { charMap: cm } = buildCharMap(textContent, vp);
     setViewport(vp);
     setCharMap(cm);
@@ -68,11 +61,6 @@ export function usePageRenderer(pdfPage, scale = 1.5, patches = []) {
       }
 
       const r = rects[0];
-
-      // ── DEBUG: log what we're actually drawing with ───────────────────────
-      console.log("Patch draw:", { canvasFont: r.canvasFont, baseline: r.baseline, newText });
-      // ─────────────────────────────────────────────────────────────────────
-
       ctx.font         = r.canvasFont;
       ctx.fillStyle    = "#000000";
       ctx.textBaseline = "alphabetic";
