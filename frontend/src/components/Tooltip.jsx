@@ -2,9 +2,9 @@ import { useRef, useState, useEffect } from "react";
 import { SEVERITY_STYLES, TYPE_ICONS } from "../data/theme";
 
 const STATUS_LABELS = {
-  pending:   null,               // no badge for default state
-  edited:    { text: "Edited — pending re-analysis", color: "#f59e0b" },
-  resolved:  { text: "Resolved", color: "#22c55e" },
+  pending:   null,
+  edited:    { text: "Edytowano — oczekuje ponownej analizy", color: "#f59e0b" },
+  resolved:  { text: "Rozwiązane", color: "#22c55e" },
 };
 
 export function Tooltip({ suggestions, anchorRect, containerRef, onDismiss }) {
@@ -44,7 +44,7 @@ export function Tooltip({ suggestions, anchorRect, containerRef, onDismiss }) {
       }}
     >
       {suggestions.map((s, i) => {
-        const style      = SEVERITY_STYLES[s.severity];
+        const style      = SEVERITY_STYLES[s.severity] ?? SEVERITY_STYLES.error;
         const statusBadge = STATUS_LABELS[s.status];
 
         return (
@@ -68,7 +68,7 @@ export function Tooltip({ suggestions, anchorRect, containerRef, onDismiss }) {
               {/* Dismiss button */}
               <button
                 onClick={() => onDismiss?.(s.id)}
-                title="Dismiss suggestion"
+                title="Odrzuć sugestię"
                 style={{
                   marginLeft: "auto",
                   background: "none",

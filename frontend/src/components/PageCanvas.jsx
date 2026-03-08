@@ -3,9 +3,9 @@ import { usePageRenderer } from "../hooks/usePageRenderer";
 import { getRects, hitTest } from "../utils/charMap";
 import { SEVERITY_STYLES } from "../data/theme";
 
-const SEVERITY_ORDER = { error: 0, warning: 1, info: 2 };
+const SEVERITY_ORDER = { error: 0, info: 1 };
 function topSeverity(s) {
-  return s.slice().sort((a, b) => SEVERITY_ORDER[a.severity] - SEVERITY_ORDER[b.severity])[0];
+  return s.slice().sort((a, b) => (SEVERITY_ORDER[a.severity] ?? 0) - (SEVERITY_ORDER[b.severity] ?? 1))[0];
 }
 
 export function PageCanvas({ pdfPage, pageIndex, suggestions, pageText, onApplyEdit, onDismiss }) {
@@ -100,7 +100,7 @@ export function PageCanvas({ pdfPage, pageIndex, suggestions, pageText, onApplyE
           onClick={handleSvgClick}
         >
           {highlightGroups.map(({ suggestion: s, rects }) => {
-            const style    = SEVERITY_STYLES[s.severity];
+            const style    = SEVERITY_STYLES[s.severity] ?? SEVERITY_STYLES.error;
             const isHovered = s.id === hoveredId;
             const isEdited  = s.status === "edited";
             return rects.map((r, ri) => (
@@ -138,10 +138,10 @@ export function PageCanvas({ pdfPage, pageIndex, suggestions, pageText, onApplyE
 // ── HoverTooltip ──────────────────────────────────────────────────────────────
 
 function HoverTooltip({ suggestion: s, x, y, containerWidth, onDismiss }) {
-  const style  = SEVERITY_STYLES[s.severity];
+  const style  = SEVERITY_STYLES[s.severity] ?? SEVERITY_STYLES.error;
   const width  = 300;
   const left   = Math.min(x + 12, containerWidth - width - 8);
-  const STATUS = { edited: { text: "Edited — pending re-analysis", color: "#f59e0b" }, resolved: { text: "Resolved", color: "#22c55e" } }[s.status];
+  const STATUS = { edited: { text: "Edytowano — oczekuje ponownej analizy", color: "#f59e0b" }, resolved: { text: "Rozwiązane", color: "#22c55e" } }[s.status];
   return (
     <div style={{ position: "absolute", top: y + 20, left: Math.max(8, left), width, background: "#fff", border: "1px solid #e2ddd8", borderLeft: `3px solid ${style.border}`, borderRadius: 8, boxShadow: "0 4px 24px rgba(0,0,0,0.13)", padding: "11px 13px", pointerEvents: "auto", zIndex: 50, animation: "tooltipIn 0.12s ease" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 5 }}>
@@ -152,7 +152,7 @@ function HoverTooltip({ suggestion: s, x, y, containerWidth, onDismiss }) {
       {STATUS && <div style={{ marginBottom: 5, fontSize: 10, color: STATUS.color, fontWeight: 600 }}>● {STATUS.text}</div>}
       <div style={{ fontSize: 13, fontWeight: 600, color: "#1a1814", marginBottom: 4 }}>{s.message}</div>
       <div style={{ fontSize: 12, color: "#5c5650", lineHeight: 1.55 }}>{s.suggestion}</div>
-      <div style={{ marginTop: 8, fontSize: 11, color: style.dot, fontWeight: 500 }}>Click highlight to edit ↗</div>
+      <div style={{ marginTop: 8, fontSize: 11, color: style.dot, fontWeight: 500 }}>Kliknij podświetlenie, aby edytować ↗</div>
     </div>
   );
 }
@@ -160,19 +160,19 @@ function HoverTooltip({ suggestion: s, x, y, containerWidth, onDismiss }) {
 // ── EditOverlay ───────────────────────────────────────────────────────────────
 
 function EditOverlay({ suggestion, rect, value, onConfirm, onCancel }) {
-  const style = SEVERITY_STYLES[suggestion.severity];
+  const style = SEVERITY_STYLES[suggestion.severity] ?? SEVERITY_STYLES.error;
   const ref   = useRef(null);
   const [text, setText] = useState(value);
   useEffect(() => { ref.current?.focus(); ref.current?.select(); }, []);
   return (
     <div style={{ position: "absolute", top: rect.y - 4, left: rect.x - 4, width: Math.max(rect.width + 8, 240), zIndex: 60 }}>
-      <textarea ref={ref} value={text} onChange={(e) => setText(e.target.value)}
+      <textarea ref={ref} value={text} onChange={(e) => setText(e.target.value)} spellCheck={false}
         onKeyDown={(e) => { if (e.key === "Escape") onCancel(); if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) onConfirm(suggestion, text); e.stopPropagation(); }}
         style={{ width: "100%", minHeight: Math.max(rect.height + 8, 36), padding: "4px 6px", fontFamily: "'Crimson Pro', Georgia, serif", fontSize: 15, lineHeight: 1.6, color: "#1a1814", background: "#fffef9", border: `2px solid ${style.border}`, borderRadius: 4, boxShadow: `0 0 0 3px ${style.bg}, 0 4px 16px rgba(0,0,0,0.12)`, resize: "vertical", outline: "none" }}
       />
       <div style={{ display: "flex", gap: 6, marginTop: 4, justifyContent: "flex-end" }}>
-        <button onClick={onCancel} style={btn("#f5f3ef","#5c5650")}>Cancel <kbd style={{opacity:0.5,fontSize:10}}>Esc</kbd></button>
-        <button onClick={() => onConfirm(suggestion, text)} style={btn(style.border,"#fff")}>Save <kbd style={{opacity:0.7,fontSize:10}}>⌘↵</kbd></button>
+        <button onClick={onCancel} style={btn("#f5f3ef","#5c5650")}>Anuluj <kbd style={{opacity:0.5,fontSize:10}}>Esc</kbd></button>
+        <button onClick={() => onConfirm(suggestion, text)} style={btn(style.border,"#fff")}>Zapisz <kbd style={{opacity:0.7,fontSize:10}}>⌘↵</kbd></button>
       </div>
     </div>
   );

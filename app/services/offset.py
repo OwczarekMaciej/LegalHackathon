@@ -19,20 +19,22 @@ def find_snippet_offset(
         end_before = len(full_text)
     search_slice = full_text[start_from:end_before]
     snippet_clean = " ".join(snippet.split())
-    idx = search_slice.find(snippet_clean)
-    if idx == -1:
-        idx = search_slice.find(snippet)
+    idx_clean = search_slice.find(snippet_clean)
+    idx_exact = search_slice.find(snippet)
+    idx = idx_clean if idx_clean != -1 else idx_exact if idx_exact != -1 else -1
     if idx == -1:
         first_word = snippet.split()[0] if snippet.split() else snippet[:20]
         idx = search_slice.find(first_word)
         if idx != -1:
-            end = min(idx + len(snippet_clean), len(search_slice))
+            end = idx + len(first_word)
             return MiejsceOffset(
                 start=start_from + idx,
                 end=start_from + end,
-                snippet=snippet_clean or snippet,
+                snippet=first_word,
             )
         return None
     start = start_from + idx
-    end = start + len(snippet_clean)
-    return MiejsceOffset(start=start, end=end, snippet=snippet_clean)
+    # Use length of the substring we actually matched so offsets match the stored text
+    matched = snippet_clean if idx_clean != -1 else snippet
+    end = start + len(matched)
+    return MiejsceOffset(start=start, end=end, snippet=matched)

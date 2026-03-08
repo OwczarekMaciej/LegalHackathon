@@ -76,12 +76,12 @@ export function PdfImportButton({ onImport }) {
         {isParsing ? (
           <>
             <Spinner />
-            Parsing PDF…
+            Odczytywanie PDF…
           </>
         ) : (
           <>
             <span style={{ fontSize: 14 }}>⬆</span>
-            Import PDF
+            Importuj PDF
           </>
         )}
       </div>

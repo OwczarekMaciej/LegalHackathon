@@ -42,11 +42,11 @@ export function buildSegments(text, suggestions) {
 
 /**
  * topSeverity
- * Returns the most severe suggestion from a list, by error > warning > info.
+ * Returns the most severe suggestion from a list: text issues first, then visualization suggestions.
  */
-const SEVERITY_ORDER = { error: 0, warning: 1, info: 2 };
+const SEVERITY_ORDER = { error: 0, info: 1 };
 export function topSeverity(suggestions) {
   return suggestions.slice().sort(
-    (a, b) => SEVERITY_ORDER[a.severity] - SEVERITY_ORDER[b.severity]
+    (a, b) => (SEVERITY_ORDER[a.severity] ?? 0) - (SEVERITY_ORDER[b.severity] ?? 1)
   )[0];
 }

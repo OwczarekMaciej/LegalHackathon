@@ -1,31 +1,25 @@
+// Two issue types: text (language) and visualisation suggestions. "resolved" for completed items.
 export const SEVERITY_STYLES = {
   error: {
     bg:      "rgba(239,68,68,0.18)",
     bgHover: "rgba(239,68,68,0.32)",
     border:  "rgba(239,68,68,0.7)",
     dot:     "#ef4444",
-    label:   "Issue",
-  },
-  warning: {
-    bg:      "rgba(245,158,11,0.18)",
-    bgHover: "rgba(245,158,11,0.32)",
-    border:  "rgba(245,158,11,0.7)",
-    dot:     "#f59e0b",
-    label:   "Warning",
+    label:   "Problem z tekstem",
   },
   info: {
     bg:      "rgba(59,130,246,0.18)",
     bgHover: "rgba(59,130,246,0.32)",
     border:  "rgba(59,130,246,0.7)",
     dot:     "#3b82f6",
-    label:   "Suggestion",
+    label:   "Sugestia wizualizacji",
   },
   resolved: {
     bg:      "rgba(156,163,175,0.13)",
     bgHover: "rgba(156,163,175,0.13)",
     border:  "rgba(156,163,175,0.45)",
     dot:     "#9ca3af",
-    label:   "Resolved",
+    label:   "Rozwiązane",
   },
 };
 

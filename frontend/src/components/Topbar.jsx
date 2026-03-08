@@ -17,10 +17,10 @@ export function Topbar({ filename, suggestionCount, isDark, onToggleTheme, onImp
       {/* Logo */}
       <div style={{ display: "flex", alignItems: "baseline", gap: 0 }}>
         <span style={{ fontSize: 15, fontWeight: 700, color: "var(--text-primary)", letterSpacing: "-0.02em" }}>
-          lex
+          Legal
         </span>
-        <span style={{ fontSize: 15, fontWeight: 700, color: "var(--accent)", letterSpacing: "-0.02em" }}>
-          edit
+        <span style={{ fontSize: 15, fontWeight: 700, color: "#22c55e", letterSpacing: "-0.02em" }}>
+          ease
         </span>
       </div>
 
@@ -43,7 +43,7 @@ export function Topbar({ filename, suggestionCount, isDark, onToggleTheme, onImp
         <div style={{ width: 1, height: 20, background: "var(--border)" }} />
 
         <div style={{ fontSize: 12, color: "var(--text-muted)" }}>
-          {suggestionCount} suggestion{suggestionCount !== 1 ? "s" : ""}
+          {suggestionCount === 1 ? "1 sugestia" : suggestionCount >= 2 && suggestionCount <= 4 ? `${suggestionCount} sugestie` : `${suggestionCount} sugestii`}
         </div>
         <button
           onClick={onToggleTheme}
@@ -57,7 +57,7 @@ export function Topbar({ filename, suggestionCount, isDark, onToggleTheme, onImp
             cursor: "pointer",
           }}
         >
-          {isDark ? "☀ Light" : "☽ Dark"}
+          {isDark ? "☀ Jasny" : "☽ Ciemny"}
         </button>
       </div>
     </div>
