@@ -3,7 +3,7 @@ import { buildSegments, topSeverity } from "../utils/segments";
 import { SEVERITY_STYLES } from "../data/theme";
 import { Tooltip } from "./Tooltip";
 
-export function PageView({ pageIndex, text, suggestions, onApplyEdit, onDismiss }) {
+export function PageView({ pageIndex, text, suggestions, onApplyEdit, onDismiss, visualizations, onRemoveViz }) {
   const containerRef = useRef(null);
   const [hoveredSuggIds, setHoveredSuggIds] = useState([]);
   const [anchorRect,     setAnchorRect]     = useState(null);
@@ -119,26 +119,34 @@ export function PageView({ pageIndex, text, suggestions, onApplyEdit, onDismiss 
 
   const paragraphs = [];
   let offset = 0;
-  for (const chunk of text.split("\n\n")) {
+  for (const chunk of text.split("\n")) {
     paragraphs.push({ text: chunk, offset });
-    offset += chunk.length + 2;
+    offset += chunk.length + 1; // +1 for the single \n separator
   }
 
   return (
     <div ref={containerRef} style={{ position: "relative" }}>
       <div style={{ outline: "none" }}>
         {paragraphs.map((para, pi) => (
-          <p key={pi} style={paraStyle}>
-            <ParagraphContent
-              para={para}
-              annotatedSegments={annotatedSegments}
-              hoveredSuggIds={hoveredSuggIds}
-              spanRefs={spanRefs}
-              onKeyDown={handleKeyDown}
-              onMouseEnter={handleMouseEnter}
-              onMouseLeave={handleMouseLeave}
-            />
-          </p>
+          <div key={pi}>
+            <p style={paraStyle}>
+              <ParagraphContent
+                para={para}
+                annotatedSegments={annotatedSegments}
+                hoveredSuggIds={hoveredSuggIds}
+                spanRefs={spanRefs}
+                onKeyDown={handleKeyDown}
+                onMouseEnter={handleMouseEnter}
+                onMouseLeave={handleMouseLeave}
+              />
+            </p>
+            {visualizations?.[pi] && (
+              <VizBlock
+                imgUrl={visualizations[pi]}
+                onRemove={() => onRemoveViz?.(pageIndex, pi)}
+              />
+            )}
+          </div>
         ))}
       </div>
 
@@ -216,6 +224,31 @@ function ParagraphContent({ para, annotatedSegments, hoveredSuggIds, spanRefs, o
   }
 
   return nodes.length ? nodes : <span>{para.text}</span>;
+}
+
+function VizBlock({ imgUrl, onRemove }) {
+  return (
+    <div style={{ margin: "16px 0 20px", position: "relative" }}>
+      <img
+        src={imgUrl}
+        alt="Generated visualisation"
+        style={{ width: "100%", borderRadius: 6, display: "block", border: "1px solid rgba(0,0,0,0.08)" }}
+      />
+      <button
+        onClick={onRemove}
+        title="Remove visualisation"
+        style={{
+          position: "absolute", top: 6, right: 6,
+          background: "rgba(0,0,0,0.45)", border: "none", borderRadius: 4,
+          color: "#fff", fontSize: 12, lineHeight: 1,
+          width: 22, height: 22, cursor: "pointer",
+          display: "flex", alignItems: "center", justifyContent: "center",
+        }}
+      >
+        ✕
+      </button>
+    </div>
+  );
 }
 
 const paraStyle = {

@@ -24,12 +24,12 @@ function extractPageText(textContent) {
   const lineMap = new Map();
   for (const item of textContent.items) {
     if (!item.str) continue;
-    const y = Math.round(item.transform[5] * 10) / 10; // 0.1pt resolution
+    const y = Math.round(item.transform[5] * 10) / 10;
     if (!lineMap.has(y)) lineMap.set(y, []);
     lineMap.get(y).push(item);
   }
 
-  // ── 2. Sort lines top-to-bottom (PDF Y is bottom-up so descending) ─────────
+  // ── 2. Sort lines top-to-bottom (PDF Y is bottom-up, so descending) ────────
   const sortedYs = [...lineMap.keys()].sort((a, b) => b - a);
 
   // ── 3. Build line strings ───────────────────────────────────────────────────
@@ -37,33 +37,37 @@ function extractPageText(textContent) {
     const items = lineMap.get(y).sort((a, b) => a.transform[4] - b.transform[4]);
     return {
       y,
-      text: items.map((it) => it.str).join(""),
-      // Approximate line height from the font scale of this line's items
+      // Trim each item's text so we control spacing ourselves
+      text: items.map((it) => it.str.trim()).filter(Boolean).join(" "),
       lineHeight: Math.abs(items[0].transform[3]) || 12,
     };
-  });
+  }).filter((l) => l.text.length > 0);
 
   if (!lines.length) return "";
 
-  // ── 4. Estimate normal line spacing from the most common gap ───────────────
+  // ── 4. Estimate normal line spacing ────────────────────────────────────────
   const gaps = [];
   for (let i = 1; i < lines.length; i++) {
-    gaps.push(lines[i - 1].y - lines[i].y); // positive = downward
+    gaps.push(lines[i - 1].y - lines[i].y);
   }
   gaps.sort((a, b) => a - b);
   const medianGap = gaps[Math.floor(gaps.length / 2)] || lines[0].lineHeight;
 
-  // ── 5. Assemble — collapse soft wraps, preserve paragraph breaks ────────────
+  // ── 5. Assemble ─────────────────────────────────────────────────────────────
+  // Use a SINGLE 
+  // This ensures the backend (which receives this exact string as a fragment)
+  // computes offsets against the same character sequence we display and store.
+  // Soft line wraps within a paragraph become a single space.
   const parts = [lines[0].text];
   for (let i = 1; i < lines.length; i++) {
-    const gap        = lines[i - 1].y - lines[i].y;
-    const isParagraph = gap > medianGap * 1.6;
-    parts.push(isParagraph ? "\n\n" : " ");
+    const gap = lines[i - 1].y - lines[i].y;
+    parts.push(gap > medianGap * 1.6 ? "\n" : " ");
     parts.push(lines[i].text);
   }
 
-  return parts.join("").replace(/ {2,}/g, " ").trim();
+  return parts.join("").trim();
 }
+
 
 export function usePdfImport() {
   const [isParsing, setIsParsing] = useState(false);

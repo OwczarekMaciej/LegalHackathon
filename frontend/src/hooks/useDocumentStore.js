@@ -23,12 +23,16 @@ export function useDocumentStore(initialPages, initialRawSuggestions, documentKe
   const [suggestions, setSuggestions] = useState(() =>
     hydrateSuggestions(initialRawSuggestions, initialPages)
   );
-  const [isAnalysing, setIsAnalysing] = useState(false);
+  const [isAnalysing,    setIsAnalysing]    = useState(false);
+  // visualizations: { [pageIndex]: { [paragraphIndex]: imgUrl } }
+  // Kept separate from pages[] so text offsets are never affected.
+  const [visualizations, setVisualizations] = useState({});
 
   useEffect(() => {
     setPages(initialPages);
     setSuggestions(hydrateSuggestions(initialRawSuggestions, initialPages));
     setIsAnalysing(false);
+    setVisualizations({});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [documentKey]);
 
@@ -37,17 +41,56 @@ export function useDocumentStore(initialPages, initialRawSuggestions, documentKe
     setSuggestions((prev) => shiftOffsets(prev, suggestionId, editStart, delta));
   }, []);
 
-  // "I fixed this" — shown as resolved in sidebar then hidden
+  // Blind accept: replace the highlighted text with proposedFix, resolve
+  const acceptSuggestion = useCallback((id) => {
+    setSuggestions((prev) => {
+      const s = prev.find((x) => x.id === id);
+      if (!s || !s.proposedFix) return prev;
+
+      const fix   = s.proposedFix;
+      const delta = fix.length - (s.end - s.start);
+
+      setPages((pages) => pages.map((pageText, i) => {
+        if (i !== s.page) return pageText;
+        return pageText.slice(0, s.start) + fix + pageText.slice(s.end);
+      }));
+
+      // Shift offsets on same page, resolve this suggestion
+      return prev.map((x) => {
+        if (x.id === id) return { ...x, end: x.start + fix.length, status: "resolved" };
+        if (x.page === s.page && x.start >= s.start && x.id !== id)
+          return { ...x, start: x.start + delta, end: x.end + delta };
+        return x;
+      });
+    });
+  }, []);
+
   const resolveSuggestion = useCallback((id) => {
     setSuggestions((prev) => prev.map((s) => s.id === id ? { ...s, status: "resolved" } : s));
   }, []);
 
-  // "Ignore this" — hidden immediately
   const dismissSuggestion = useCallback((id) => {
     setSuggestions((prev) => prev.map((s) => s.id === id ? { ...s, status: "dismissed" } : s));
   }, []);
 
-  const reanalyse = useCallback(async (fetchFn) => {
+  const insertVisualization = useCallback((pageIndex, paragraphIndex, imgUrl) => {
+    setVisualizations((prev) => ({
+      ...prev,
+      [pageIndex]: { ...(prev[pageIndex] ?? {}), [paragraphIndex]: imgUrl },
+    }));
+  }, []);
+
+  const removeVisualization = useCallback((pageIndex, paragraphIndex) => {
+    setVisualizations((prev) => {
+      const page = { ...(prev[pageIndex] ?? {}) };
+      delete page[paragraphIndex];
+      return { ...prev, [pageIndex]: page };
+    });
+  }, []);
+
+  const clearVisualizations = useCallback(() => setVisualizations({}), []);
+
+    const reanalyse = useCallback(async (fetchFn) => {
     setIsAnalysing(true);
     try {
       const fresh = await fetchFn(pages);
@@ -59,10 +102,13 @@ export function useDocumentStore(initialPages, initialRawSuggestions, documentKe
 
   return {
     pages,
-    // dismissed = hidden entirely; resolved = shown struck-through in sidebar
+    visualizations,
     suggestions: suggestions.filter((s) => s.status !== "dismissed"),
     isAnalysing,
     applyEdit,
+    acceptSuggestion,
+    insertVisualization,
+    removeVisualization,
     resolveSuggestion,
     dismissSuggestion,
     reanalyse,

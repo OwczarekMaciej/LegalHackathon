@@ -3,7 +3,7 @@ import { PageView } from "./PageView";
 // A4 at 96dpi = 794px. With 72px side padding that gives ~650px text column.
 const PAGE_WIDTH = 794;
 
-export function DocumentView({ pages, suggestions, onApplyEdit, onDismiss }) {
+export function DocumentView({ pages, suggestions, onApplyEdit, onDismiss, visualizations, onRemoveViz }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 32, alignItems: "center", paddingBottom: 64 }}>
       {pages.map((pageText, pageIndex) => (
@@ -22,6 +22,8 @@ export function DocumentView({ pages, suggestions, onApplyEdit, onDismiss }) {
               suggestions={suggestions.filter((s) => s.page === pageIndex)}
               onApplyEdit={onApplyEdit}
               onDismiss={onDismiss}
+              visualizations={visualizations?.[pageIndex] ?? {}}
+              onRemoveViz={onRemoveViz}
             />
           </div>
           <div style={{
