@@ -59,6 +59,8 @@ def _get_system_prompt_for_type(vis_type: str) -> str:
             '    {"date": "YYYY-MM-DD", "title": "Krótki tytuł/opis wydarzenia"}\n'
             "  ]\n"
             "}\n"
+            "BARDZO WAŻNE: Wartości w polu 'title' MUsZĄ być maksymalnie skrócone. "
+            "Używaj od 3 do maksymalnie 5 słów. Pisz równoważnikami zdań (np. 'Podpisanie umowy u notariusza', a nie 'Podpisanie umowy u notariusza nastąpi w ciągu tygodnia'). "
             "Upewnij się, że pole 'date' jest zawsze poprawnie sformatowane jako YYYY-MM-DD. "
             "Odpowiedz TYLKO i WYŁĄCZNIE surowym plikiem JSON pasującym dokładnie do tego schematu."
         )
